@@ -6,9 +6,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * Marks code as valid only from a specified Minecraft version onwards
+ * Marks code as valid only from (including) a specified Minecraft version onwards
  */
 @Retention(RetentionPolicy.SOURCE)
 public @interface Since {
+
     ProtocolVersion value();
+
 }

@@ -2,14 +2,13 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
 @SuppressWarnings("unused")
-public class DisplayObjectivePacket implements MinecraftPacket {
+public class DisplayObjectivePacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(DisplayObjectivePacket.class)
@@ -34,14 +33,14 @@ public class DisplayObjectivePacket implements MinecraftPacket {
     public DisplayObjectivePacket() {}
 
     public DisplayObjectivePacket(int position, String scoreName) {
-        if (position < 0 || position > 18)
-            throw new IllegalStateException("Position can only be 0-18");
-        this.position = position;
+        setPosition(position);
         this.scoreName = scoreName;
     }
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+        decoded = true;
+
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
             position = ProtocolUtils.readVarInt(buffer);
         } else {
@@ -64,7 +63,7 @@ public class DisplayObjectivePacket implements MinecraftPacket {
     }
 
     @Override
-    public boolean handle(MinecraftSessionHandler minecraftSessionHandler) {
+    public boolean handle(MinecraftSessionHandler handler) {
         return false;
     }
 

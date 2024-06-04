@@ -2,7 +2,6 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("unused")
-public class UpdateTeamsPacket implements MinecraftPacket {
+public class UpdateTeamsPacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(UpdateTeamsPacket.class)
@@ -40,7 +39,7 @@ public class UpdateTeamsPacket implements MinecraftPacket {
     private String teamName;
     private Mode mode;
     private Component teamDisplayName;
-    private List<FriendlyFlags> friendlyFlags;
+    private List<FriendlyFlag> friendlyFlags;
     private NameTagVisibility nameTagVisibility;
     private CollisionRule collisionRule;
     private NamedTextColor teamColor;
@@ -54,7 +53,7 @@ public class UpdateTeamsPacket implements MinecraftPacket {
         this(teamName, mode, teamDisplayName, new ArrayList<>(), nameTagVisibility, collisionRule, null, null, null, entities);
     }
 
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, List<FriendlyFlags> friendlyFlags, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, NamedTextColor teamColor, Component teamPrefix, Component teamSuffix, List<String> entities) {
+    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, List<FriendlyFlag> friendlyFlags, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, NamedTextColor teamColor, Component teamPrefix, Component teamSuffix, List<String> entities) {
         this.teamName = teamName;
         this.mode = mode;
         this.teamDisplayName = teamDisplayName;
@@ -69,6 +68,8 @@ public class UpdateTeamsPacket implements MinecraftPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+        decoded = true;
+
         teamName = ProtocolUtils.readString(buffer);
         mode = Mode.values()[buffer.readByte()];
 
@@ -76,7 +77,7 @@ public class UpdateTeamsPacket implements MinecraftPacket {
             teamDisplayName = ComponentHolder.read(buffer, protocolVersion).getComponent();
             int flagsBitmask = buffer.readUnsignedByte();
             friendlyFlags = new ArrayList<>();
-            for (FriendlyFlags flag : FriendlyFlags.values()) {
+            for (FriendlyFlag flag : FriendlyFlag.values()) {
                 if ((flag.getBitmask() & flagsBitmask) == flag.getBitmask())
                     friendlyFlags.add(flag);
             }
@@ -105,7 +106,7 @@ public class UpdateTeamsPacket implements MinecraftPacket {
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
             new ComponentHolder(protocolVersion, teamDisplayName).write(buffer);
             int flagsBitmask = 0;
-            for (FriendlyFlags flag : friendlyFlags)
+            for (FriendlyFlag flag : friendlyFlags)
                 flagsBitmask |= flag.getBitmask();
             buffer.writeByte(flagsBitmask);
             String nameTagVisibilityKey = nameTagVisibility.getKey();
@@ -132,7 +133,7 @@ public class UpdateTeamsPacket implements MinecraftPacket {
     }
 
     @Override
-    public boolean handle(MinecraftSessionHandler minecraftSessionHandler) {
+    public boolean handle(MinecraftSessionHandler handler) {
         return false;
     }
 
@@ -160,11 +161,11 @@ public class UpdateTeamsPacket implements MinecraftPacket {
         this.teamDisplayName = teamDisplayName;
     }
 
-    public List<FriendlyFlags> getFriendlyFlags() {
+    public List<FriendlyFlag> getFriendlyFlags() {
         return friendlyFlags;
     }
 
-    public void setFriendlyFlags(List<FriendlyFlags> friendlyFlags) {
+    public void setFriendlyFlags(List<FriendlyFlag> friendlyFlags) {
         this.friendlyFlags = friendlyFlags;
     }
 
@@ -220,12 +221,12 @@ public class UpdateTeamsPacket implements MinecraftPacket {
         CREATE_TEAM, REMOVE_TEAM, UPDATE_TEAM_INFO, ADD_ENTITIES, REMOVE_ENTITIES
     }
 
-    public enum FriendlyFlags {
+    public enum FriendlyFlag {
         ALLOW_FRIENDLY_FIRE(0x01), SEE_TEAM_INVISIBLE_PLAYERS(0x02);
 
         private final int bitmask;
 
-        FriendlyFlags(int bitmask) {
+        FriendlyFlag(int bitmask) {
             this.bitmask = bitmask;
         }
 
@@ -239,13 +240,13 @@ public class UpdateTeamsPacket implements MinecraftPacket {
 
         private static final Map<String, NameTagVisibility> valuesMap = new HashMap<>();
 
+        public static NameTagVisibility get(String name) {
+            return valuesMap.get(name);
+        }
+
         static {
             for (NameTagVisibility value : values())
                 valuesMap.put(value.getKey(), value);
-        }
-
-        public static NameTagVisibility get(String name) {
-            return valuesMap.get(name);
         }
 
         private final String name;
@@ -264,13 +265,13 @@ public class UpdateTeamsPacket implements MinecraftPacket {
 
         private static final Map<String, CollisionRule> valuesMap = new HashMap<>();
 
+        public static CollisionRule get(String name) {
+            return valuesMap.get(name);
+        }
+
         static {
             for (CollisionRule value : values())
                 valuesMap.put(value.getKey(), value);
-        }
-
-        public static CollisionRule get(String name) {
-            return valuesMap.get(name);
         }
 
         private final String name;

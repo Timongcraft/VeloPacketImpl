@@ -2,7 +2,6 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -13,7 +12,7 @@ import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 
 @SuppressWarnings("unused")
-public class UpdateObjectivesPacket implements MinecraftPacket {
+public class UpdateObjectivesPacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(UpdateObjectivesPacket.class)
@@ -68,6 +67,8 @@ public class UpdateObjectivesPacket implements MinecraftPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+        decoded = true;
+
         objectiveName = ProtocolUtils.readString(buffer);
         mode = Mode.values()[buffer.readByte()];
         if (mode != Mode.REMOVE_SCOREBOARD) {
@@ -112,7 +113,7 @@ public class UpdateObjectivesPacket implements MinecraftPacket {
     }
 
     @Override
-    public boolean handle(MinecraftSessionHandler minecraftSessionHandler) {
+    public boolean handle(MinecraftSessionHandler handler) {
         return false;
     }
 

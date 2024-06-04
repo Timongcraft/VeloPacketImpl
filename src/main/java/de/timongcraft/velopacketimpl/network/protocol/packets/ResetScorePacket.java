@@ -2,7 +2,6 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
@@ -11,7 +10,7 @@ import io.netty.buffer.ByteBuf;
 
 @SuppressWarnings("unused")
 @Since(ProtocolVersion.MINECRAFT_1_20_3)
-public class ResetScorePacket implements MinecraftPacket {
+public class ResetScorePacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(ResetScorePacket.class)
@@ -43,6 +42,8 @@ public class ResetScorePacket implements MinecraftPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+        decoded = true;
+
         entityName = ProtocolUtils.readString(buffer);
         hasObjectiveName = buffer.readBoolean();
         if (hasObjectiveName)
@@ -58,7 +59,7 @@ public class ResetScorePacket implements MinecraftPacket {
     }
 
     @Override
-    public boolean handle(MinecraftSessionHandler minecraftSessionHandler) {
+    public boolean handle(MinecraftSessionHandler handler) {
         return false;
     }
 

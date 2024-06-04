@@ -31,12 +31,12 @@ public class ComponentUtils {
 
         private static final NumberFormatBlank INSTANCE = new NumberFormatBlank();
 
-        private NumberFormatBlank() {
-            super(NumberFormatType.BLANK);
-        }
-
         public static NumberFormatBlank getInstance() {
             return INSTANCE;
+        }
+
+        private NumberFormatBlank() {
+            super(NumberFormatType.BLANK);
         }
 
     }

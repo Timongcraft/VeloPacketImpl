@@ -2,7 +2,6 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -12,7 +11,7 @@ import io.netty.buffer.ByteBuf;
 
 @SuppressWarnings("unused")
 @Since(ProtocolVersion.MINECRAFT_1_19)
-public class SystemChatMessagePacket implements MinecraftPacket {
+public class SystemChatMessagePacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(SystemChatMessagePacket.class)
@@ -33,8 +32,17 @@ public class SystemChatMessagePacket implements MinecraftPacket {
     private ComponentHolder content;
     private boolean overlay;
 
+    public SystemChatMessagePacket() {}
+
+    public SystemChatMessagePacket(ComponentHolder content, boolean overlay) {
+        this.content = content;
+        this.overlay = overlay;
+    }
+
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+        decoded = true;
+
         content = ComponentHolder.read(buffer, protocolVersion);
         overlay = buffer.readBoolean();
     }
