@@ -19,6 +19,7 @@ public class ResetScorePacket extends VeloPacket {
                 .stateRegistry(StateRegistry.PLAY)
                 .mapping(0x42, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x44, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x44, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .register();
     }
 

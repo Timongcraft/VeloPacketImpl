@@ -24,6 +24,7 @@ public class DisplayObjectivePacket extends VeloPacket {
                 .mapping(0x53, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x55, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x57, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x57, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .register();
     }
 

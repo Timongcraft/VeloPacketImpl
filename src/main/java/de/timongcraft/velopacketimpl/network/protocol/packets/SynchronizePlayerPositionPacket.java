@@ -29,6 +29,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
                 .mapping(0x3E, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x3E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x40, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x40, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .register();
     }
 

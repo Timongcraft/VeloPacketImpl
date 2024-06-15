@@ -1,6 +1,6 @@
 # VeloPacketImpl
 
-Packet implementations for Velocity (1.18.2-1.20.5)
+Packet implementations for Velocity (1.18.2-1.21)
 
 ## Getting started
 Note: You can find the current version [here](https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl).
@@ -13,7 +13,7 @@ Note: You can find the current version [here](https://repo.skyblocksquad.de/#/re
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>3.5.2</version>
+            <version>3.6.0</version>
             <executions>
                 <execution>
                     <phase>package</phase>

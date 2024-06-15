@@ -33,6 +33,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 .mapping(0x5C, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x60, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x60, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .register();
     }
 
