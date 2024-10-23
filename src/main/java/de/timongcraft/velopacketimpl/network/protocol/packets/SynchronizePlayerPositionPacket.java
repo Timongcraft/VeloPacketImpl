@@ -4,14 +4,18 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.annotations.Until;
-import de.timongcraft.velopacketimpl.utils.network.Location;
+import de.timongcraft.velopacketimpl.utils.network.PlayerPosition;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.EnumSet;
+import java.util.Set;
 
+/**
+ * (latest) Resource Id: 'minecraft:player_position'
+ */
 @SuppressWarnings("unused")
 public class SynchronizePlayerPositionPacket extends VeloPacket {
 
@@ -30,12 +34,13 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
                 .mapping(0x3E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x40, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x40, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x42, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
-    private Location location;
-    private List<Flag> flags;
     private int teleportId;
+    private PlayerPosition pos;
+    private Set<Flag> flags;
     @Until(ProtocolVersion.MINECRAFT_1_19_3)
     private boolean dismountVehicle;
 
@@ -43,34 +48,42 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         decoded = true;
 
-        location = Location.read(buffer);
+        if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_21)) {
+            pos = PlayerPosition.read(buffer, true);
 
-        int flagsBitmask = buffer.readUnsignedByte();
-        flags = new ArrayList<>();
-        for (Flag flag : Flag.values()) {
-            if ((flag.getBitmask() & flagsBitmask) == flag.getBitmask())
-                flags.add(flag);
+            flags = Flag.getFlags(buffer.readUnsignedByte());
+
+            teleportId = ProtocolUtils.readVarInt(buffer);
+
+            if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_19_3))
+                dismountVehicle = buffer.readBoolean();
+        } else {
+            teleportId = ProtocolUtils.readVarInt(buffer);
+
+            pos = PlayerPosition.read(buffer, false);
+
+            flags = Flag.getFlags(buffer.readUnsignedByte());
         }
-
-        teleportId = ProtocolUtils.readVarInt(buffer);
-
-        if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_19_3))
-            dismountVehicle = buffer.readBoolean();
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        location.write(buffer);
+        if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_21)) {
+            pos.write(buffer, true);
 
-        int flagsBitmask = 0;
-        for (Flag flag : flags)
-            flagsBitmask |= flag.getBitmask();
-        buffer.writeByte(flagsBitmask);
+            buffer.writeByte(Flag.getBit(flags));
 
-        ProtocolUtils.writeVarInt(buffer, teleportId);
+            ProtocolUtils.writeVarInt(buffer, teleportId);
 
-        if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_19_3))
-            buffer.writeBoolean(dismountVehicle);
+            if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_19_3))
+                buffer.writeBoolean(dismountVehicle);
+        } else {
+            ProtocolUtils.writeVarInt(buffer, teleportId);
+
+            pos.write(buffer, false);
+
+            buffer.writeByte(Flag.getBit(flags));
+        }
     }
 
     @Override
@@ -78,43 +91,79 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
         return false;
     }
 
-    public Location getLocation() {
-        return location;
+    public PlayerPosition pos() {
+        return pos;
     }
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public SynchronizePlayerPositionPacket pos(PlayerPosition pos) {
+        this.pos = pos;
+        return this;
     }
 
-    public List<Flag> getFlags() {
+    public Set<Flag> flags() {
         return flags;
     }
 
-    public void setFlags(List<Flag> flags) {
+    public SynchronizePlayerPositionPacket flags(Set<Flag> flags) {
         this.flags = flags;
+        return this;
     }
 
-    public int getTeleportId() {
+    public int teleportId() {
         return teleportId;
     }
 
-    public void setTeleportId(int teleportId) {
+    public SynchronizePlayerPositionPacket teleportId(int teleportId) {
         this.teleportId = teleportId;
+        return this;
     }
 
     public enum Flag {
-        X(0x01), Y(0x02), Z(0x04),
-        PITCH(0x08), YAW(0x10);
 
-        private final int bitmask;
+        X(0),
+        Y(1),
+        Z(2),
+        Y_ROT(3),
+        X_ROT(4),
 
-        Flag(int bitmask) {
-            this.bitmask = bitmask;
+        @Since(ProtocolVersion.MINECRAFT_1_21_2)
+        DELTA_X(5),
+        @Since(ProtocolVersion.MINECRAFT_1_21_2)
+        DELTA_Y(6),
+        @Since(ProtocolVersion.MINECRAFT_1_21_2)
+        DELTA_Z(7),
+        @Since(ProtocolVersion.MINECRAFT_1_21_2)
+        ROTATE_DELTA(8);
+
+        private final int shift;
+
+        Flag(int shift) {
+            this.shift = shift;
         }
 
-        public int getBitmask() {
-            return bitmask;
+        private int getMask() {
+            return 1 << this.shift;
         }
+
+        private boolean isSet(int mask) {
+            return (mask & this.getMask()) == this.getMask();
+        }
+
+        public static Set<Flag> getFlags(int mask) {
+            Set<Flag> flags = EnumSet.noneOf(Flag.class);
+            for (Flag positionFlag : Flag.values())
+                if (positionFlag.isSet(mask))
+                    flags.add(positionFlag);
+            return flags;
+        }
+
+        public static int getBit(Set<Flag> flags) {
+            int mask = 0;
+            for (Flag positionFlag : flags)
+                mask |= positionFlag.getMask();
+            return mask;
+        }
+
     }
 
 }

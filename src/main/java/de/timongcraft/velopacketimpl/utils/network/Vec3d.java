@@ -2,41 +2,32 @@ package de.timongcraft.velopacketimpl.utils.network;
 
 import io.netty.buffer.ByteBuf;
 
-@SuppressWarnings("unused")
-public class Location {
+public class Vec3d {
 
-    public static Location read(ByteBuf buffer) {
-        return new Location(buffer);
+    public static Vec3d read(ByteBuf buffer) {
+        return new Vec3d(buffer);
     }
 
-    public Location(ByteBuf buffer) {
+    public Vec3d(ByteBuf buffer) {
         this.x = buffer.readDouble();
         this.y = buffer.readDouble();
         this.z = buffer.readDouble();
-        this.yaw = buffer.readFloat();
-        this.pitch = buffer.readFloat();
     }
 
-    public Location(double x, double y, double z, float yaw, float pitch) {
+    public Vec3d(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
-        this.yaw = yaw;
-        this.pitch = pitch;
     }
 
     private double x;
     private double y;
     private double z;
-    private float yaw;
-    private float pitch;
 
     public void write(ByteBuf buffer) {
         buffer.writeDouble(x);
         buffer.writeDouble(y);
         buffer.writeDouble(z);
-        buffer.writeFloat(yaw);
-        buffer.writeFloat(pitch);
     }
 
     public double getX() {
@@ -61,22 +52,6 @@ public class Location {
 
     public void setZ(double z) {
         this.z = z;
-    }
-
-    public float getYaw() {
-        return yaw;
-    }
-
-    public void setYaw(float yaw) {
-        this.yaw = yaw;
-    }
-
-    public float getPitch() {
-        return pitch;
-    }
-
-    public void setPitch(float pitch) {
-        this.pitch = pitch;
     }
 
 }

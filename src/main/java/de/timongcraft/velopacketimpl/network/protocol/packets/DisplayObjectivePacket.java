@@ -7,6 +7,9 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * (latest) Resource Id: 'minecraft:set_display_objective'
+ */
 @SuppressWarnings("unused")
 public class DisplayObjectivePacket extends VeloPacket {
 
@@ -25,6 +28,7 @@ public class DisplayObjectivePacket extends VeloPacket {
                 .mapping(0x55, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x57, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x57, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x5C, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
@@ -34,7 +38,7 @@ public class DisplayObjectivePacket extends VeloPacket {
     public DisplayObjectivePacket() {}
 
     public DisplayObjectivePacket(int position, String scoreName) {
-        setPosition(position);
+        position(position);
         this.scoreName = scoreName;
     }
 
@@ -68,22 +72,24 @@ public class DisplayObjectivePacket extends VeloPacket {
         return false;
     }
 
-    public int getPosition() {
+    public int position() {
         return position;
     }
 
-    public void setPosition(int position) {
+    public DisplayObjectivePacket position(int position) {
         if (position < 0 || position > 18)
-            throw new IllegalStateException("Position can only be 0-18");
+            throw new IllegalStateException("PlayerPosition can only be 0-18");
         this.position = position;
+        return this;
     }
 
-    public String getScoreName() {
+    public String scoreName() {
         return scoreName;
     }
 
-    public void setScoreName(String scoreName) {
+    public DisplayObjectivePacket scoreName(String scoreName) {
         this.scoreName = scoreName;
+        return this;
     }
 
 }

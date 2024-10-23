@@ -12,6 +12,8 @@ import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 
+import javax.annotation.Nullable;
+
 @SuppressWarnings("unused")
 public class UpdateScorePacket extends VeloPacket {
 
@@ -30,6 +32,7 @@ public class UpdateScorePacket extends VeloPacket {
                 .mapping(0x5F, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x61, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x61, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x68, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
@@ -39,13 +42,9 @@ public class UpdateScorePacket extends VeloPacket {
     private String objectiveName;
     private int value;
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private boolean hasDisplayName;
+    private @Nullable Component displayName;
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private Component displayName;
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private boolean hasNumberFormat;
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private ComponentUtils.NumberFormat numberFormat;
+    private @Nullable ComponentUtils.NumberFormat numberFormat;
 
     public UpdateScorePacket() {}
 
@@ -64,20 +63,16 @@ public class UpdateScorePacket extends VeloPacket {
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     public UpdateScorePacket(String entityName, String objectiveName, int value) {
-        this(entityName, objectiveName, value, false, null, false, null);
+        this(entityName, objectiveName, value, null, null);
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public UpdateScorePacket(String entityName, String objectiveName, int value, boolean hasDisplayName, Component displayName, boolean hasNumberFormat, ComponentUtils.NumberFormat numberFormat) {
+    public UpdateScorePacket(String entityName, String objectiveName, int value, @Nullable Component displayName, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.entityName = entityName;
         this.objectiveName = objectiveName;
         this.value = value;
-        this.hasDisplayName = hasDisplayName;
-        if (hasDisplayName)
-            this.displayName = displayName;
-        this.hasNumberFormat = hasNumberFormat;
-        if (hasNumberFormat)
-            this.numberFormat = numberFormat;
+        this.displayName = displayName;
+        this.numberFormat = numberFormat;
     }
 
     @Override
@@ -91,11 +86,9 @@ public class UpdateScorePacket extends VeloPacket {
         if ((protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_3) && action == Action.CREATE_OR_UPDATE_SCORE) || protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3))
             value = ProtocolUtils.readVarInt(buffer);
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
-            hasDisplayName = buffer.readBoolean();
-            if (hasDisplayName)
+            if (buffer.readBoolean())
                 displayName = ComponentHolder.read(buffer, protocolVersion).getComponent();
-            hasNumberFormat = buffer.readBoolean();
-            if (hasNumberFormat) {
+            if (buffer.readBoolean()) {
                 numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
                     case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
                     case 2 -> new ComponentUtils.NumberFormatFixed(ComponentHolder.read(buffer, protocolVersion));
@@ -119,11 +112,11 @@ public class UpdateScorePacket extends VeloPacket {
         if ((protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_3) && action == Action.CREATE_OR_UPDATE_SCORE) || protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3))
             ProtocolUtils.writeVarInt(buffer, value);
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
-            buffer.writeBoolean(hasDisplayName);
-            if (hasDisplayName)
+            buffer.writeBoolean(displayName != null);
+            if (displayName != null)
                 new ComponentHolder(protocolVersion, displayName).write(buffer);
-            buffer.writeBoolean(hasNumberFormat);
-            if (hasNumberFormat) {
+            buffer.writeBoolean(numberFormat != null);
+            if (numberFormat != null) {
                 ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
                 if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
                     numberFormatFixed.getContent().write(buffer);
@@ -137,78 +130,64 @@ public class UpdateScorePacket extends VeloPacket {
         return false;
     }
 
-    public String getEntityName() {
+    public String entityName() {
         return entityName;
     }
 
-    public void setEntityName(String entityName) {
+    public UpdateScorePacket entityName(String entityName) {
         this.entityName = entityName;
+        return this;
     }
 
     @Until(ProtocolVersion.MINECRAFT_1_20_2)
-    public Action getAction() {
+    public Action action() {
         return action;
     }
 
     @Until(ProtocolVersion.MINECRAFT_1_20_2)
-    public void setAction(Action action) {
+    public UpdateScorePacket action(Action action) {
         this.action = action;
+        return this;
     }
 
-    public String getObjectiveName() {
+    public String objectiveName() {
         return objectiveName;
     }
 
-    public void setObjectiveName(String objectiveName) {
+    public UpdateScorePacket objectiveName(String objectiveName) {
         this.objectiveName = objectiveName;
+        return this;
     }
 
-    public int getValue() {
+    public int value() {
         return value;
     }
 
-    public void setValue(int value) {
+    public UpdateScorePacket value(int value) {
         this.value = value;
+        return this;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public boolean isHasDisplayName() {
-        return hasDisplayName;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setHasDisplayName(boolean hasDisplayName) {
-        this.hasDisplayName = hasDisplayName;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public Component getDisplayName() {
+    public @Nullable Component displayName() {
         return displayName;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setDisplayName(Component displayName) {
+    public UpdateScorePacket displayName(@Nullable Component displayName) {
         this.displayName = displayName;
+        return this;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public boolean isHasNumberFormat() {
-        return hasNumberFormat;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setHasNumberFormat(boolean hasNumberFormat) {
-        this.hasNumberFormat = hasNumberFormat;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public ComponentUtils.NumberFormat getNumberFormat() {
+    public @Nullable ComponentUtils.NumberFormat numberFormat() {
         return numberFormat;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setNumberFormat(ComponentUtils.NumberFormat numberFormat) {
+    public UpdateScorePacket numberFormat(@Nullable ComponentUtils.NumberFormat numberFormat) {
         this.numberFormat = numberFormat;
+        return this;
     }
 
     public enum Action {

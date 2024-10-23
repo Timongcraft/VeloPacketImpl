@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.NamedTextColorUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
@@ -12,10 +13,15 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+/**
+ * (latest) Resource Id: 'minecraft:set_player_team'
+ */
 @SuppressWarnings("unused")
 public class UpdateTeamsPacket extends VeloPacket {
 
@@ -34,36 +40,37 @@ public class UpdateTeamsPacket extends VeloPacket {
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x60, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x60, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x67, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
     private String teamName;
     private Mode mode;
-    private Component teamDisplayName;
-    private List<FriendlyFlag> friendlyFlags;
+    private Either<ComponentHolder, Component> teamDisplayName;
+    private Set<FriendlyFlag> friendlyFlags;
     private NameTagVisibility nameTagVisibility;
     private CollisionRule collisionRule;
     private NamedTextColor teamColor;
-    private Component teamPrefix;
-    private Component teamSuffix;
+    private Either<ComponentHolder, Component> teamPrefix;
+    private Either<ComponentHolder, Component> teamSuffix;
     private List<String> entities;
 
     public UpdateTeamsPacket() {}
 
     public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, List<String> entities) {
-        this(teamName, mode, teamDisplayName, new ArrayList<>(), nameTagVisibility, collisionRule, null, null, null, entities);
+        this(teamName, mode, teamDisplayName, EnumSet.noneOf(FriendlyFlag.class), nameTagVisibility, collisionRule, null, null, null, entities);
     }
 
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, List<FriendlyFlag> friendlyFlags, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, NamedTextColor teamColor, Component teamPrefix, Component teamSuffix, List<String> entities) {
+    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, Set<FriendlyFlag> friendlyFlags, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, NamedTextColor teamColor, Component teamPrefix, Component teamSuffix, List<String> entities) {
         this.teamName = teamName;
         this.mode = mode;
-        this.teamDisplayName = teamDisplayName;
+        this.teamDisplayName = Either.secondary(teamDisplayName);
         this.friendlyFlags = friendlyFlags;
         this.nameTagVisibility = nameTagVisibility;
         this.collisionRule = collisionRule;
         this.teamColor = teamColor;
-        this.teamPrefix = teamPrefix;
-        this.teamSuffix = teamSuffix;
+        this.teamPrefix = Either.secondary(teamPrefix);
+        this.teamSuffix = Either.secondary(teamSuffix);
         this.entities = entities;
     }
 
@@ -75,18 +82,13 @@ public class UpdateTeamsPacket extends VeloPacket {
         mode = Mode.values()[buffer.readByte()];
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            teamDisplayName = ComponentHolder.read(buffer, protocolVersion).getComponent();
-            int flagsBitmask = buffer.readUnsignedByte();
-            friendlyFlags = new ArrayList<>();
-            for (FriendlyFlag flag : FriendlyFlag.values()) {
-                if ((flag.getBitmask() & flagsBitmask) == flag.getBitmask())
-                    friendlyFlags.add(flag);
-            }
+            teamDisplayName = Either.primary(ComponentHolder.read(buffer, protocolVersion));
+            friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
             nameTagVisibility = NameTagVisibility.get(ProtocolUtils.readString(buffer));
             collisionRule = CollisionRule.get(ProtocolUtils.readString(buffer));
             teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
-            teamPrefix = ComponentHolder.read(buffer, protocolVersion).getComponent();
-            teamSuffix = ComponentHolder.read(buffer, protocolVersion).getComponent();
+            teamPrefix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
+            teamSuffix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
@@ -105,11 +107,13 @@ public class UpdateTeamsPacket extends VeloPacket {
         buffer.writeByte(mode.ordinal());
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            new ComponentHolder(protocolVersion, teamDisplayName).write(buffer);
-            int flagsBitmask = 0;
-            for (FriendlyFlag flag : friendlyFlags)
-                flagsBitmask |= flag.getBitmask();
-            buffer.writeByte(flagsBitmask);
+            if (teamDisplayName.isPrimary()) {
+                // breaks if packet is read in vX and written to vY
+                teamDisplayName.getPrimary().write(buffer);
+            } else {
+                new ComponentHolder(protocolVersion, teamDisplayName.getSecondary()).write(buffer);
+            }
+            buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
             String nameTagVisibilityKey = nameTagVisibility.getKey();
             if (protocolVersion.equals(ProtocolVersion.MINECRAFT_1_19_4) && nameTagVisibilityKey.length() > 32)
                 throw new IllegalStateException("name tag visibility can only be 32 chars long");
@@ -119,8 +123,18 @@ public class UpdateTeamsPacket extends VeloPacket {
                 throw new IllegalStateException("collision rule can only be 32 chars long");
             ProtocolUtils.writeString(buffer, collisionRuleKey);
             ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
-            new ComponentHolder(protocolVersion, teamPrefix).write(buffer);
-            new ComponentHolder(protocolVersion, teamSuffix).write(buffer);
+            if (teamPrefix.isPrimary()) {
+                // breaks if packet is read in vX and written to vY
+                teamPrefix.getPrimary().write(buffer);
+            } else {
+                new ComponentHolder(protocolVersion, teamPrefix.getSecondary()).write(buffer);
+            }
+            if (teamSuffix.isPrimary()) {
+                // breaks if packet is read in vX and written to vY
+                teamSuffix.getPrimary().write(buffer);
+            } else {
+                new ComponentHolder(protocolVersion, teamSuffix.getSecondary()).write(buffer);
+            }
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
@@ -138,84 +152,106 @@ public class UpdateTeamsPacket extends VeloPacket {
         return false;
     }
 
-    public String getTeamName() {
+    public String teamName() {
         return teamName;
     }
 
-    public void setTeamName(String teamName) {
+    public UpdateTeamsPacket teamName(String teamName) {
         this.teamName = teamName;
+        return this;
     }
 
-    public Mode getMode() {
+    public Mode mode() {
         return mode;
     }
 
-    public void setMode(Mode mode) {
+    public UpdateTeamsPacket mode(Mode mode) {
         this.mode = mode;
+        return this;
     }
 
-    public Component getTeamDisplayName() {
-        return teamDisplayName;
+    public Component teamDisplayName() {
+        if (teamDisplayName.isPrimary()) {
+            return teamDisplayName.getPrimary().getComponent();
+        } else {
+            return teamDisplayName.getSecondary();
+        }
     }
 
-    public void setTeamDisplayName(Component teamDisplayName) {
-        this.teamDisplayName = teamDisplayName;
+    public UpdateTeamsPacket teamDisplayName(Component teamDisplayName) {
+        this.teamDisplayName = Either.secondary(teamDisplayName);
+        return this;
     }
 
-    public List<FriendlyFlag> getFriendlyFlags() {
+    public Set<FriendlyFlag> friendlyFlags() {
         return friendlyFlags;
     }
 
-    public void setFriendlyFlags(List<FriendlyFlag> friendlyFlags) {
+    public UpdateTeamsPacket friendlyFlags(Set<FriendlyFlag> friendlyFlags) {
         this.friendlyFlags = friendlyFlags;
+        return this;
     }
 
-    public NameTagVisibility getNameTagVisibility() {
+    public NameTagVisibility nameTagVisibility() {
         return nameTagVisibility;
     }
 
-    public void setNameTagVisibility(NameTagVisibility nameTagVisibility) {
+    public UpdateTeamsPacket nameTagVisibility(NameTagVisibility nameTagVisibility) {
         this.nameTagVisibility = nameTagVisibility;
+        return this;
     }
 
-    public CollisionRule getCollisionRule() {
+    public CollisionRule collisionRule() {
         return collisionRule;
     }
 
-    public void setCollisionRule(CollisionRule collisionRule) {
+    public UpdateTeamsPacket collisionRule(CollisionRule collisionRule) {
         this.collisionRule = collisionRule;
+        return this;
     }
 
-    public NamedTextColor getTeamColor() {
+    public NamedTextColor teamColor() {
         return teamColor;
     }
 
-    public void setTeamColor(NamedTextColor teamColor) {
+    public UpdateTeamsPacket teamColor(NamedTextColor teamColor) {
         this.teamColor = teamColor;
+        return this;
     }
 
-    public Component getTeamPrefix() {
-        return teamPrefix;
+    public Component teamPrefix() {
+        if (teamPrefix.isPrimary()) {
+            return teamPrefix.getPrimary().getComponent();
+        } else {
+            return teamPrefix.getSecondary();
+        }
     }
 
-    public void setTeamPrefix(Component teamPrefix) {
-        this.teamPrefix = teamPrefix;
+    public UpdateTeamsPacket teamPrefix(Component teamPrefix) {
+        this.teamPrefix = Either.secondary(teamPrefix);
+        return this;
     }
 
-    public Component getTeamSuffix() {
-        return teamSuffix;
+    public Component teamSuffix() {
+        if (teamSuffix.isPrimary()) {
+            return teamSuffix.getPrimary().getComponent();
+        } else {
+            return teamSuffix.getSecondary();
+        }
     }
 
-    public void setTeamSuffix(Component teamSuffix) {
-        this.teamSuffix = teamSuffix;
+    public UpdateTeamsPacket teamSuffix(Component teamSuffix) {
+        this.teamSuffix = Either.secondary(teamSuffix);
+        return this;
     }
 
-    public List<String> getEntities() {
+    public List<String> entities() {
         return entities;
     }
 
-    public void setEntities(List<String> entities) {
+    public UpdateTeamsPacket entities(List<String> entities) {
         this.entities = entities;
+        return this;
     }
 
     public enum Mode {
@@ -223,67 +259,94 @@ public class UpdateTeamsPacket extends VeloPacket {
     }
 
     public enum FriendlyFlag {
-        ALLOW_FRIENDLY_FIRE(0x01), SEE_TEAM_INVISIBLE_PLAYERS(0x02);
 
-        private final int bitmask;
+        ALLOW_FRIENDLY_FIRE(0), SEE_TEAM_INVISIBLE_PLAYERS(1);
 
-        FriendlyFlag(int bitmask) {
-            this.bitmask = bitmask;
+        private final int shift;
+
+        FriendlyFlag(int shift) {
+            this.shift = shift;
         }
 
-        public int getBitmask() {
-            return bitmask;
+        private int getMask() {
+            return 1 << this.shift;
         }
+
+        private boolean isSet(int mask) {
+            return (mask & this.getMask()) == this.getMask();
+        }
+
+        public static Set<FriendlyFlag> getFlags(int mask) {
+            Set<FriendlyFlag> flags = EnumSet.noneOf(FriendlyFlag.class);
+            for (FriendlyFlag flag : FriendlyFlag.values())
+                if (flag.isSet(mask))
+                    flags.add(flag);
+            return flags;
+        }
+
+        public static int getBit(Set<FriendlyFlag> flags) {
+            int mask = 0;
+            for (FriendlyFlag flag : flags)
+                mask |= flag.getMask();
+            return mask;
+        }
+
     }
 
     public enum NameTagVisibility {
+
         ALWAYS("always"), HIDE_FOR_OTHER_TEAMS("hideForOtherTeams"), HIDE_FOR_OWN_TEAM("hideForOwnTeam"), NEVER("never");
 
-        private static final Map<String, NameTagVisibility> valuesMap = new HashMap<>();
+        private static final Map<String, NameTagVisibility> VALUES = new HashMap<>();
 
         public static NameTagVisibility get(String name) {
-            return valuesMap.get(name);
+            return VALUES.get(name);
         }
 
         static {
             for (NameTagVisibility value : values())
-                valuesMap.put(value.getKey(), value);
+                VALUES.put(value.getKey(), value);
         }
 
-        private final String name;
+        private final String key;
 
-        NameTagVisibility(String name) {
-            this.name = name;
+        NameTagVisibility(String key) {
+            this.key = key;
         }
 
         public String getKey() {
-            return name;
+            return key;
         }
+
     }
 
     public enum CollisionRule {
-        ALWAYS("always"), PUSH_OTHER_TEAMS("pushOtherTeams"), PUSH_OWN_TEAM("pushOwnTeam"), NEVER("never");
 
-        private static final Map<String, CollisionRule> valuesMap = new HashMap<>();
+        ALWAYS("always"),
+        PUSH_OTHER_TEAMS("pushOtherTeams"), PUSH_OWN_TEAM("pushOwnTeam"),
+        NEVER("never");
+
+        private static final Map<String, CollisionRule> VALUES = new HashMap<>();
 
         public static CollisionRule get(String name) {
-            return valuesMap.get(name);
+            return VALUES.get(name);
         }
 
         static {
             for (CollisionRule value : values())
-                valuesMap.put(value.getKey(), value);
+                VALUES.put(value.getKey(), value);
         }
 
-        private final String name;
+        private final String key;
 
-        CollisionRule(String name) {
-            this.name = name;
+        CollisionRule(String key) {
+            this.key = key;
         }
 
         public String getKey() {
-            return name;
+            return key;
         }
+
     }
 
 }

@@ -8,6 +8,11 @@ import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
+import javax.annotation.Nullable;
+
+/**
+ * (latest) Resource Id: 'minecraft:reset_score'
+ */
 @SuppressWarnings("unused")
 @Since(ProtocolVersion.MINECRAFT_1_20_3)
 public class ResetScorePacket extends VeloPacket {
@@ -20,12 +25,12 @@ public class ResetScorePacket extends VeloPacket {
                 .mapping(0x42, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x44, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x44, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x49, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
     private String entityName;
-    private boolean hasObjectiveName;
-    private String objectiveName;
+    private @Nullable String objectiveName;
 
     public ResetScorePacket() {}
 
@@ -33,12 +38,9 @@ public class ResetScorePacket extends VeloPacket {
         this(entityName, null);
     }
 
-    public ResetScorePacket(String entityName, String objectiveName) {
+    public ResetScorePacket(String entityName, @Nullable String objectiveName) {
         this.entityName = entityName;
-        if (objectiveName != null) {
-            this.hasObjectiveName = true;
-            this.objectiveName = objectiveName;
-        }
+        this.objectiveName = objectiveName;
     }
 
     @Override
@@ -46,16 +48,15 @@ public class ResetScorePacket extends VeloPacket {
         decoded = true;
 
         entityName = ProtocolUtils.readString(buffer);
-        hasObjectiveName = buffer.readBoolean();
-        if (hasObjectiveName)
+        if (buffer.readBoolean())
             objectiveName = ProtocolUtils.readString(buffer);
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buffer, entityName);
-        buffer.writeBoolean(hasObjectiveName);
-        if (hasObjectiveName)
+        buffer.writeBoolean(objectiveName != null);
+        if (objectiveName != null)
             ProtocolUtils.writeString(buffer, objectiveName);
     }
 
@@ -64,28 +65,22 @@ public class ResetScorePacket extends VeloPacket {
         return false;
     }
 
-    public String getEntityName() {
+    public String entityName() {
         return entityName;
     }
 
-    public void setEntityName(String entityName) {
+    public ResetScorePacket entityName(String entityName) {
         this.entityName = entityName;
+        return this;
     }
 
-    public boolean isHasObjectiveName() {
-        return hasObjectiveName;
-    }
-
-    public void setHasObjectiveName(boolean hasObjectiveName) {
-        this.hasObjectiveName = hasObjectiveName;
-    }
-
-    public String getObjectiveName() {
+    public @Nullable String objectiveName() {
         return objectiveName;
     }
 
-    public void setObjectiveName(String objectiveName) {
+    public ResetScorePacket objectiveName(@Nullable String objectiveName) {
         this.objectiveName = objectiveName;
+        return this;
     }
 
 }

@@ -7,6 +7,9 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * (latest) Resource Id: 'minecraft:container_close'
+ */
 @SuppressWarnings("unused")
 public class ScreenClosePacket extends VeloPacket {
 
@@ -25,6 +28,7 @@ public class ScreenClosePacket extends VeloPacket {
                 .mapping(0x12, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x12, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x12, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x12, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
@@ -43,6 +47,7 @@ public class ScreenClosePacket extends VeloPacket {
                 .mapping(0x0E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x0F, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x0F, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x11, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
@@ -71,12 +76,13 @@ public class ScreenClosePacket extends VeloPacket {
         return false;
     }
 
-    public int getWindowId() {
+    public int windowId() {
         return windowId;
     }
 
-    public void setWindowId(int windowId) {
+    public ScreenClosePacket windowId(int windowId) {
         this.windowId = windowId;
+        return this;
     }
 
 }

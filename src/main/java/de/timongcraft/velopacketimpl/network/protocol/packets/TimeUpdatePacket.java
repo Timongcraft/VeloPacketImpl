@@ -7,6 +7,9 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * (latest) Resource Id: 'minecraft:set_time'
+ */
 @SuppressWarnings("unused")
 public class TimeUpdatePacket extends VeloPacket {
 
@@ -25,24 +28,30 @@ public class TimeUpdatePacket extends VeloPacket {
                 .mapping(0x62, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x64, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x64, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x6B, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
     private long worldAge;
     /**
-     * If negative the client will not advance time on its on
+     * As this is a cross version packet impl this will always be positive.
+     * To stop the time form advancing:
+     *
+     * @see #tickDayTime
      */
     private long timeOfDay;
+    private boolean tickDayTime;
 
     public TimeUpdatePacket() {}
 
-    public TimeUpdatePacket(long timeOfDay) {
-        this(0, timeOfDay);
+    public TimeUpdatePacket(long timeOfDay, boolean tickDayTime) {
+        this(0, timeOfDay, tickDayTime);
     }
 
-    public TimeUpdatePacket(long worldAge, long timeOfDay) {
+    public TimeUpdatePacket(long worldAge, long timeOfDay, boolean tickDayTime) {
         this.worldAge = worldAge;
         this.timeOfDay = timeOfDay;
+        this.tickDayTime = tickDayTime;
     }
 
     @Override
@@ -50,13 +59,25 @@ public class TimeUpdatePacket extends VeloPacket {
         decoded = true;
 
         worldAge = buffer.readLong();
-        timeOfDay = buffer.readLong();
+        setTimeOfDay(buffer.readLong());
+
+        if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2))
+            tickDayTime = buffer.readBoolean();
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         buffer.writeLong(worldAge);
-        buffer.writeLong(timeOfDay);
+
+        if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
+            // handle that timeOfDay is always positive
+            buffer.writeLong(tickDayTime ? timeOfDay : -timeOfDay);
+        } else {
+            buffer.writeLong(timeOfDay);
+        }
+
+        if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2))
+            buffer.writeBoolean(tickDayTime);
     }
 
     @Override
@@ -77,7 +98,24 @@ public class TimeUpdatePacket extends VeloPacket {
     }
 
     public void setTimeOfDay(long timeOfDay) {
-        this.timeOfDay = timeOfDay;
+        if (timeOfDay >= 0) {
+            this.timeOfDay = timeOfDay;
+            tickDayTime = true;
+        } else {
+            // old/negative time handling might be removed in the future
+
+            // make timeOfDay always positive, as tickDayTime should be used to determine if the time advancing
+            this.timeOfDay = -timeOfDay;
+            tickDayTime = false;
+        }
+    }
+
+    public boolean isTickDayTime() {
+        return tickDayTime;
+    }
+
+    public void setTickDayTime(boolean tickDayTime) {
+        this.tickDayTime = tickDayTime;
     }
 
 }

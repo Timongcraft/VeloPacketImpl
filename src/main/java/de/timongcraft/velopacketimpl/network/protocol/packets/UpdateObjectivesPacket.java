@@ -6,11 +6,17 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
+import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 
+import javax.annotation.Nullable;
+
+/**
+ * (latest) Resource Id: 'minecraft:set_objective'
+ */
 @SuppressWarnings("unused")
 public class UpdateObjectivesPacket extends VeloPacket {
 
@@ -29,15 +35,14 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 .mapping(0x5C, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x64, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
     private String objectiveName;
     private Mode mode;
-    private Component objectiveValue;
+    private Either<ComponentHolder, Component> objectiveValue;
     private Type type;
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private boolean hasNumberFormat;
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     private ComponentUtils.NumberFormat numberFormat;
 
@@ -50,20 +55,26 @@ public class UpdateObjectivesPacket extends VeloPacket {
     public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type) {
         this.objectiveName = objectiveName;
         this.mode = mode;
-        this.objectiveValue = objectiveValue;
+        this.objectiveValue = Either.secondary(objectiveValue);
         this.type = type;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type, ComponentUtils.NumberFormat numberFormat) {
+    public UpdateObjectivesPacket(String objectiveName, Mode mode, ComponentHolder objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.objectiveName = objectiveName;
         this.mode = mode;
-        this.objectiveValue = objectiveValue;
+        this.objectiveValue = Either.primary(objectiveValue);
         this.type = type;
-        if (numberFormat != null) {
-            this.hasNumberFormat = true;
-            this.numberFormat = numberFormat;
-        }
+        this.numberFormat = numberFormat;
+    }
+
+    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
+        this.objectiveName = objectiveName;
+        this.mode = mode;
+        this.objectiveValue = Either.secondary(objectiveValue);
+        this.type = type;
+        this.numberFormat = numberFormat;
     }
 
     @Override
@@ -73,11 +84,10 @@ public class UpdateObjectivesPacket extends VeloPacket {
         objectiveName = ProtocolUtils.readString(buffer);
         mode = Mode.values()[buffer.readByte()];
         if (mode != Mode.REMOVE_SCOREBOARD) {
-            objectiveValue = ComponentHolder.read(buffer, protocolVersion).getComponent();
+            objectiveValue = Either.primary(ComponentHolder.read(buffer, protocolVersion));
             type = Type.values()[ProtocolUtils.readVarInt(buffer)];
             if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
-                hasNumberFormat = buffer.readBoolean();
-                if (hasNumberFormat) {
+                if (buffer.readBoolean()) {
                     numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
                         case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
                         case 1 -> throw new IllegalStateException("Styled number format not implemented");
@@ -97,11 +107,16 @@ public class UpdateObjectivesPacket extends VeloPacket {
         ProtocolUtils.writeString(buffer, objectiveName);
         buffer.writeByte(mode.ordinal());
         if (mode != Mode.REMOVE_SCOREBOARD) {
-            new ComponentHolder(protocolVersion, objectiveValue).write(buffer);
+            if (objectiveValue.isPrimary()) {
+                // breaks if packet is read in vX and written to vY
+                objectiveValue.getPrimary().write(buffer);
+            } else {
+                new ComponentHolder(protocolVersion, objectiveValue.getSecondary()).write(buffer);
+            }
             buffer.writeByte(type.ordinal());
             if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
-                buffer.writeBoolean(hasNumberFormat);
-                if (hasNumberFormat) {
+                buffer.writeBoolean(numberFormat != null);
+                if (numberFormat != null) {
                     ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
                     if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
                         numberFormatFixed.getContent().write(buffer);
@@ -118,56 +133,55 @@ public class UpdateObjectivesPacket extends VeloPacket {
         return false;
     }
 
-    public String getObjectiveName() {
+    public String objectiveName() {
         return objectiveName;
     }
 
-    public void setObjectiveName(String objectiveName) {
+    public UpdateObjectivesPacket objectiveName(String objectiveName) {
         this.objectiveName = objectiveName;
+        return this;
     }
 
-    public Mode getMode() {
+    public Mode mode() {
         return mode;
     }
 
-    public void setMode(Mode mode) {
+    public UpdateObjectivesPacket mode(Mode mode) {
         this.mode = mode;
+        return this;
     }
 
-    public Component getObjectiveValue() {
-        return objectiveValue;
+    public Component objectiveValue() {
+        if (objectiveValue.isPrimary()) {
+            return objectiveValue.getPrimary().getComponent();
+        } else {
+            return objectiveValue.getSecondary();
+        }
     }
 
-    public void setObjectiveValue(Component objectiveValue) {
-        this.objectiveValue = objectiveValue;
+    public UpdateObjectivesPacket objectiveValue(Component objectiveValue) {
+        this.objectiveValue = Either.secondary(objectiveValue);
+        return this;
     }
 
-    public Type getType() {
+    public Type type() {
         return type;
     }
 
-    public void setType(Type type) {
+    public UpdateObjectivesPacket type(Type type) {
         this.type = type;
+        return this;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public boolean isHasNumberFormat() {
-        return hasNumberFormat;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setHasNumberFormat(boolean hasNumberFormat) {
-        this.hasNumberFormat = hasNumberFormat;
-    }
-
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public ComponentUtils.NumberFormat getNumberFormat() {
+    public @Nullable ComponentUtils.NumberFormat numberFormat() {
         return numberFormat;
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    public void setNumberFormat(ComponentUtils.NumberFormat numberFormat) {
+    public UpdateObjectivesPacket numberFormat(@Nullable ComponentUtils.NumberFormat numberFormat) {
         this.numberFormat = numberFormat;
+        return this;
     }
 
     public enum Mode {

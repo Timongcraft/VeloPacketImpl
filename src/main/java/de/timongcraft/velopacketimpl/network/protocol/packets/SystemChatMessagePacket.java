@@ -5,10 +5,15 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
+import net.kyori.adventure.text.Component;
 
+/**
+ * (latest) Resource Id: 'minecraft:system_chat'
+ */
 @SuppressWarnings("unused")
 @Since(ProtocolVersion.MINECRAFT_1_19)
 public class SystemChatMessagePacket extends VeloPacket {
@@ -27,16 +32,22 @@ public class SystemChatMessagePacket extends VeloPacket {
                 .mapping(0x69, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x6C, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x6C, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
+                .mapping(0x73, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
 
-    private ComponentHolder content;
+    private Either<ComponentHolder, Component> content;
     private boolean overlay;
 
     public SystemChatMessagePacket() {}
 
     public SystemChatMessagePacket(ComponentHolder content, boolean overlay) {
-        this.content = content;
+        this.content = Either.primary(content);
+        this.overlay = overlay;
+    }
+
+    public SystemChatMessagePacket(Component content, boolean overlay) {
+        this.content = Either.secondary(content);
         this.overlay = overlay;
     }
 
@@ -44,13 +55,18 @@ public class SystemChatMessagePacket extends VeloPacket {
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         decoded = true;
 
-        content = ComponentHolder.read(buffer, protocolVersion);
+        content = Either.primary(ComponentHolder.read(buffer, protocolVersion));
         overlay = buffer.readBoolean();
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        content.write(buffer);
+        if (content.isPrimary()) {
+            // breaks if packet is read in vX and written to vY
+            content.getPrimary().write(buffer);
+        } else {
+            new ComponentHolder(protocolVersion, content.getSecondary()).write(buffer);
+        }
         buffer.writeBoolean(overlay);
     }
 
@@ -59,20 +75,26 @@ public class SystemChatMessagePacket extends VeloPacket {
         return false;
     }
 
-    public ComponentHolder getContent() {
-        return content;
+    public Component content() {
+        if (content.isPrimary()) {
+            return content.getPrimary().getComponent();
+        } else {
+            return content.getSecondary();
+        }
     }
 
-    public void setContent(ComponentHolder content) {
-        this.content = content;
+    public SystemChatMessagePacket content(Component content) {
+        this.content = Either.secondary(content);
+        return this;
     }
 
-    public boolean isOverlay() {
+    public boolean overlay() {
         return overlay;
     }
 
-    public void setOverlay(boolean overlay) {
+    public SystemChatMessagePacket overlay(boolean overlay) {
         this.overlay = overlay;
+        return this;
     }
 
 }
