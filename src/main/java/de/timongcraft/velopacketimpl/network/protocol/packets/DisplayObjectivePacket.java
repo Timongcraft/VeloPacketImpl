@@ -78,7 +78,7 @@ public class DisplayObjectivePacket extends VeloPacket {
 
     public DisplayObjectivePacket position(int position) {
         if (position < 0 || position > 18)
-            throw new IllegalStateException("PlayerPosition can only be 0-18");
+            throw new IllegalStateException("position can only be 0-18");
         this.position = position;
         return this;
     }

@@ -50,7 +50,7 @@ public class TimeUpdatePacket extends VeloPacket {
 
     public TimeUpdatePacket(long worldAge, long timeOfDay, boolean tickDayTime) {
         this.worldAge = worldAge;
-        this.timeOfDay = timeOfDay;
+        setTimeOfDay(timeOfDay);
         this.tickDayTime = tickDayTime;
     }
 
@@ -70,10 +70,10 @@ public class TimeUpdatePacket extends VeloPacket {
         buffer.writeLong(worldAge);
 
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
+            buffer.writeLong(timeOfDay);
+        } else {
             // handle that timeOfDay is always positive
             buffer.writeLong(tickDayTime ? timeOfDay : -timeOfDay);
-        } else {
-            buffer.writeLong(timeOfDay);
         }
 
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2))
