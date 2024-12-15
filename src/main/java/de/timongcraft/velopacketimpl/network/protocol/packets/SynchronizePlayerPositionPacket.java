@@ -62,7 +62,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
 
             pos = PlayerPosition.read(buffer, false);
 
-            flags = Flag.getFlags(buffer.readUnsignedByte());
+            flags = Flag.getFlags(buffer.readInt());
         }
     }
 
@@ -71,7 +71,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
         if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_21)) {
             pos.write(buffer, true);
 
-            buffer.writeByte(Flag.getBit(flags));
+            buffer.writeByte(Flag.getBitfield(flags));
 
             ProtocolUtils.writeVarInt(buffer, teleportId);
 
@@ -82,7 +82,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
 
             pos.write(buffer, false);
 
-            buffer.writeByte(Flag.getBit(flags));
+            buffer.writeInt(Flag.getBitfield(flags));
         }
     }
 
@@ -142,11 +142,11 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
         }
 
         private int getMask() {
-            return 1 << this.shift;
+            return 1 << shift;
         }
 
         private boolean isSet(int mask) {
-            return (mask & this.getMask()) == this.getMask();
+            return (mask & getMask()) == getMask();
         }
 
         public static Set<Flag> getFlags(int mask) {
@@ -157,7 +157,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
             return flags;
         }
 
-        public static int getBit(Set<Flag> flags) {
+        public static int getBitfield(Set<Flag> flags) {
             int mask = 0;
             for (Flag positionFlag : flags)
                 mask |= positionFlag.getMask();

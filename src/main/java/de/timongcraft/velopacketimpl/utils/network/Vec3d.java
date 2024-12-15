@@ -5,13 +5,7 @@ import io.netty.buffer.ByteBuf;
 public class Vec3d {
 
     public static Vec3d read(ByteBuf buffer) {
-        return new Vec3d(buffer);
-    }
-
-    public Vec3d(ByteBuf buffer) {
-        this.x = buffer.readDouble();
-        this.y = buffer.readDouble();
-        this.z = buffer.readDouble();
+        return new Vec3d(buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
     }
 
     public Vec3d(double x, double y, double z) {
