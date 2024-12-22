@@ -14,6 +14,9 @@ import net.kyori.adventure.text.Component;
 
 import javax.annotation.Nullable;
 
+/**
+ * (latest) Resource Id: 'minecraft:set_score'
+ */
 @SuppressWarnings("unused")
 public class UpdateScorePacket extends VeloPacket {
 
