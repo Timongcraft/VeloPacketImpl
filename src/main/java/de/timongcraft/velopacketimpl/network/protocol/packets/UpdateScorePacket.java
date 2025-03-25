@@ -26,15 +26,12 @@ public class UpdateScorePacket extends VeloPacket {
                 .packetSupplier(UpdateScorePacket::new)
                 .stateRegistry(StateRegistry.PLAY)
                 .mapping(0x56, ProtocolVersion.MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x56, ProtocolVersion.MINECRAFT_1_19, encodeOnly)
                 .mapping(0x59, ProtocolVersion.MINECRAFT_1_19_1, encodeOnly)
                 .mapping(0x57, ProtocolVersion.MINECRAFT_1_19_3, encodeOnly)
                 .mapping(0x5B, ProtocolVersion.MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x5B, ProtocolVersion.MINECRAFT_1_20, encodeOnly)
                 .mapping(0x5D, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x5F, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x61, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x61, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .mapping(0x68, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }

@@ -19,15 +19,12 @@ public class DisplayObjectivePacket extends VeloPacket {
                 .packetSupplier(DisplayObjectivePacket::new)
                 .stateRegistry(StateRegistry.PLAY)
                 .mapping(0x4C, ProtocolVersion.MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x4C, ProtocolVersion.MINECRAFT_1_19, encodeOnly)
                 .mapping(0x4F, ProtocolVersion.MINECRAFT_1_19_1, encodeOnly)
                 .mapping(0x4D, ProtocolVersion.MINECRAFT_1_19_3, encodeOnly)
                 .mapping(0x51, ProtocolVersion.MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x51, ProtocolVersion.MINECRAFT_1_20, encodeOnly)
                 .mapping(0x53, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x55, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x57, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x57, ProtocolVersion.MINECRAFT_1_21, encodeOnly)
                 .mapping(0x5C, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
                 .register();
     }
