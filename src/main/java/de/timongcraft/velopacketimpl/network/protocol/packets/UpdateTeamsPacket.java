@@ -315,6 +315,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
                     throw new IllegalStateException("name tag visibility can only be 32 chars long");
                 ProtocolUtils.writeString(buf, key);
+                return;
             }
 
             ProtocolUtils.writeVarInt(buf, ordinal());
@@ -359,6 +360,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
                     throw new IllegalStateException("name tag visibility can only be 32 chars long");
                 ProtocolUtils.writeString(buf, key);
+                return;
             }
 
             ProtocolUtils.writeVarInt(buf, ordinal());
