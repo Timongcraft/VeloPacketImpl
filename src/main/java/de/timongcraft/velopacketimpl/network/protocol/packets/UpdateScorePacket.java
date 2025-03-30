@@ -33,6 +33,7 @@ public class UpdateScorePacket extends VeloPacket {
                 .mapping(0x5F, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x61, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x68, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x67, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 

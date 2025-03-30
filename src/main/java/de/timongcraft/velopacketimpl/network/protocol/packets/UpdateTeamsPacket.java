@@ -38,6 +38,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x60, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x67, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x66, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 
@@ -81,8 +82,8 @@ public class UpdateTeamsPacket extends VeloPacket {
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
             teamDisplayName = Either.primary(ComponentHolder.read(buffer, protocolVersion));
             friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
-            nameTagVisibility = NameTagVisibility.get(ProtocolUtils.readString(buffer));
-            collisionRule = CollisionRule.get(ProtocolUtils.readString(buffer));
+            nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
+            collisionRule = CollisionRule.read(buffer, protocolVersion);
             teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
             teamPrefix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
             teamSuffix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
@@ -111,14 +112,8 @@ public class UpdateTeamsPacket extends VeloPacket {
                 new ComponentHolder(protocolVersion, teamDisplayName.getSecondary()).write(buffer);
             }
             buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
-            String nameTagVisibilityKey = nameTagVisibility.getKey();
-            if (protocolVersion.equals(ProtocolVersion.MINECRAFT_1_19_4) && nameTagVisibilityKey.length() > 32)
-                throw new IllegalStateException("name tag visibility can only be 32 chars long");
-            ProtocolUtils.writeString(buffer, nameTagVisibilityKey);
-            String collisionRuleKey = collisionRule.getKey();
-            if (protocolVersion.equals(ProtocolVersion.MINECRAFT_1_19_4) && collisionRuleKey.length() > 32)
-                throw new IllegalStateException("collision rule can only be 32 chars long");
-            ProtocolUtils.writeString(buffer, collisionRuleKey);
+            nameTagVisibility.write(buffer, protocolVersion);
+            collisionRule.write(buffer, protocolVersion);
             ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
             if (teamPrefix.isPrimary()) {
                 // breaks if packet is read in vX and written to vY
@@ -296,8 +291,12 @@ public class UpdateTeamsPacket extends VeloPacket {
 
         private static final Map<String, NameTagVisibility> VALUES = new HashMap<>();
 
-        public static NameTagVisibility get(String name) {
-            return VALUES.get(name);
+        public static NameTagVisibility read(ByteBuf buf, ProtocolVersion version) {
+            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+                return VALUES.get(ProtocolUtils.readString(buf));
+            }
+
+            return values()[ProtocolUtils.readVarInt(buf)];
         }
 
         static {
@@ -311,6 +310,16 @@ public class UpdateTeamsPacket extends VeloPacket {
             this.key = key;
         }
 
+        public void write(ByteBuf buf, ProtocolVersion version) {
+            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+                if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
+                    throw new IllegalStateException("name tag visibility can only be 32 chars long");
+                ProtocolUtils.writeString(buf, key);
+            }
+
+            ProtocolUtils.writeVarInt(buf, ordinal());
+        }
+
         public String getKey() {
             return key;
         }
@@ -320,13 +329,18 @@ public class UpdateTeamsPacket extends VeloPacket {
     public enum CollisionRule {
 
         ALWAYS("always"),
-        PUSH_OTHER_TEAMS("pushOtherTeams"), PUSH_OWN_TEAM("pushOwnTeam"),
-        NEVER("never");
+        NEVER("never"),
+        PUSH_OTHER_TEAMS("pushOtherTeams"),
+        PUSH_OWN_TEAM("pushOwnTeam");
 
         private static final Map<String, CollisionRule> VALUES = new HashMap<>();
 
-        public static CollisionRule get(String name) {
-            return VALUES.get(name);
+        public static CollisionRule read(ByteBuf buf, ProtocolVersion version) {
+            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+                return VALUES.get(ProtocolUtils.readString(buf));
+            }
+
+            return values()[ProtocolUtils.readVarInt(buf)];
         }
 
         static {
@@ -338,6 +352,16 @@ public class UpdateTeamsPacket extends VeloPacket {
 
         CollisionRule(String key) {
             this.key = key;
+        }
+
+        public void write(ByteBuf buf, ProtocolVersion version) {
+            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+                if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
+                    throw new IllegalStateException("name tag visibility can only be 32 chars long");
+                ProtocolUtils.writeString(buf, key);
+            }
+
+            ProtocolUtils.writeVarInt(buf, ordinal());
         }
 
         public String getKey() {

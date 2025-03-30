@@ -10,7 +10,12 @@ import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_20_3;
 public class ComponentUtils {
 
     public enum NumberFormatType {
-        BLANK, FIXED, STYLED
+
+        BLANK,
+        FIXED,
+        //uses snbt since 1.21.5
+        STYLED
+
     }
 
     public abstract static class NumberFormat {

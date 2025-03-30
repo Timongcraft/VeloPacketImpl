@@ -6,7 +6,7 @@
 
     <groupId>de.timongcraft</groupId>
     <artifactId>VeloPacketImpl</artifactId>
-    <version>3.0.2</version>
+    <version>3.0.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -15,6 +15,36 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>deploy-tests-locally</id>
+            <activation>
+                <property>
+                    <name>install-tests-locally</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.4.2</version>
+                        <executions>
+                            <execution>
+                                <id>attach-test-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>test-jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>

@@ -33,6 +33,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 .mapping(0x5C, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x64, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x63, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 

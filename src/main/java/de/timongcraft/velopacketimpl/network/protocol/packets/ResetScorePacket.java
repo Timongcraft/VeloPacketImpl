@@ -25,6 +25,7 @@ public class ResetScorePacket extends VeloPacket {
                 .mapping(0x42, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x44, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x49, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x48, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 

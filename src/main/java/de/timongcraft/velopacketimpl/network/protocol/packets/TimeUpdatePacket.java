@@ -26,6 +26,7 @@ public class TimeUpdatePacket extends VeloPacket {
                 .mapping(0x62, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
                 .mapping(0x64, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x6B, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x6A, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 
