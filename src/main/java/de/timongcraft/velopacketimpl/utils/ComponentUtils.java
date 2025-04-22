@@ -53,6 +53,8 @@ public class ComponentUtils {
 
         public abstract void write(ByteBuf buf, ProtocolVersion version);
 
+        public abstract NumberFormat compiled(ProtocolVersion version);
+
     }
 
     public static class NumberFormatBlank extends NumberFormat {
@@ -70,11 +72,16 @@ public class ComponentUtils {
         @Override
         public void write(ByteBuf buf, ProtocolVersion version) {}
 
+        @Override
+        public NumberFormatBlank compiled(ProtocolVersion version) {
+            return this;
+        }
+
     }
 
     public static class NumberFormatFixed extends NumberFormat {
 
-        private Either<ComponentHolder, Component> content;
+        private final Either<ComponentHolder, Component> content;
 
         public NumberFormatFixed(ComponentHolder content) {
             super(NumberFormatType.FIXED);
@@ -83,18 +90,6 @@ public class ComponentUtils {
 
         public NumberFormatFixed(Component content) {
             super(NumberFormatType.FIXED);
-            this.content = Either.secondary(content);
-        }
-
-        public Component getContent() {
-            if (content.isSecondary()) {
-                return content.getSecondary();
-            } else {
-                return content.getPrimary().getComponent();
-            }
-        }
-
-        public void setContent(Component content) {
             this.content = Either.secondary(content);
         }
 
@@ -109,6 +104,27 @@ public class ComponentUtils {
                 content.getPrimary().write(buf);
             } else {
                 new ComponentHolder(version, content.getSecondary()).write(buf);
+            }
+        }
+
+        @Override
+        public NumberFormatFixed compiled(ProtocolVersion version) {
+            if (content.isPrimary()) {
+                if (ComponentUtils.getVersion(content.getPrimary()).equals(version)) {
+                    return new NumberFormatFixed(new ComponentHolder(version, content.getPrimary().getComponent()));
+                } else {
+                    return this;
+                }
+            } else {
+                return new NumberFormatFixed(new ComponentHolder(version, content.getSecondary()));
+            }
+        }
+
+        public Component getContent() {
+            if (content.isSecondary()) {
+                return content.getSecondary();
+            } else {
+                return content.getPrimary().getComponent();
             }
         }
 
