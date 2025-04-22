@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
@@ -61,8 +62,11 @@ public class SystemChatMessagePacket extends VeloPacket {
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         if (content.isPrimary()) {
-            // breaks if packet is read in vX and written to vY
-            content.getPrimary().write(buffer);
+            if (ComponentUtils.getVersion(content.getPrimary()).equals(protocolVersion)) {
+                new ComponentHolder(protocolVersion, content.getPrimary().getComponent()).write(buffer);
+            } else {
+                content.getPrimary().write(buffer);
+            }
         } else {
             new ComponentHolder(protocolVersion, content.getSecondary()).write(buffer);
         }
@@ -84,6 +88,11 @@ public class SystemChatMessagePacket extends VeloPacket {
 
     public SystemChatMessagePacket content(Component content) {
         this.content = Either.secondary(content);
+        return this;
+    }
+
+    public SystemChatMessagePacket content(ComponentHolder content) {
+        this.content = Either.primary(content);
         return this;
     }
 

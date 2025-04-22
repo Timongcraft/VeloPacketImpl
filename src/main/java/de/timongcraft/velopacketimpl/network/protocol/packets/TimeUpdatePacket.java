@@ -70,7 +70,6 @@ public class TimeUpdatePacket extends VeloPacket {
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
             buffer.writeLong(timeOfDay);
         } else {
-            // handle that timeOfDay is always positive
             buffer.writeLong(tickDayTime ? timeOfDay : -timeOfDay);
         }
 
@@ -95,14 +94,15 @@ public class TimeUpdatePacket extends VeloPacket {
         return timeOfDay;
     }
 
+    /**
+     * Note: old/negative time handling might be removed in the future
+     */
     public void setTimeOfDay(long timeOfDay) {
         if (timeOfDay >= 0) {
             this.timeOfDay = timeOfDay;
             tickDayTime = true;
         } else {
-            // old/negative time handling might be removed in the future
-
-            // make timeOfDay always positive, as tickDayTime should be used to determine if the time advancing
+            // make timeOfDay variable always positive, tickDayTime should now be used to determine if the time advancing
             this.timeOfDay = -timeOfDay;
             tickDayTime = false;
         }

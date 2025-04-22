@@ -106,8 +106,11 @@ public class UpdateObjectivesPacket extends VeloPacket {
         buffer.writeByte(mode.ordinal());
         if (mode != Mode.REMOVE_SCOREBOARD) {
             if (objectiveValue.isPrimary()) {
-                // breaks if packet is read in vX and written to vY
-                objectiveValue.getPrimary().write(buffer);
+                if (ComponentUtils.getVersion(objectiveValue.getPrimary()).equals(protocolVersion)) {
+                    new ComponentHolder(protocolVersion, objectiveValue.getPrimary().getComponent()).write(buffer);
+                } else {
+                    objectiveValue.getPrimary().write(buffer);
+                }
             } else {
                 new ComponentHolder(protocolVersion, objectiveValue.getSecondary()).write(buffer);
             }
@@ -117,7 +120,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 if (numberFormat != null) {
                     ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
                     if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
-                        numberFormatFixed.getContent().write(buffer);
+                        numberFormatFixed.write(buffer, protocolVersion);
                     } /*else if (numberFormat instanceof ComponentUtils.NumberFormatStyled) {
                         throw new IllegalStateException("Styled number format not implemented");
                     }*/
@@ -159,6 +162,11 @@ public class UpdateObjectivesPacket extends VeloPacket {
 
     public UpdateObjectivesPacket objectiveValue(Component objectiveValue) {
         this.objectiveValue = Either.secondary(objectiveValue);
+        return this;
+    }
+
+    public UpdateObjectivesPacket objectiveValue(ComponentHolder objectiveValue) {
+        this.objectiveValue = Either.primary(objectiveValue);
         return this;
     }
 

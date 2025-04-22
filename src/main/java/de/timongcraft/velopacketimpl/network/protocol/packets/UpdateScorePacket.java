@@ -6,6 +6,7 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
+import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.annotations.Until;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
@@ -43,7 +44,7 @@ public class UpdateScorePacket extends VeloPacket {
     private String objectiveName;
     private int value;
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
-    private @Nullable Component displayName;
+    private @Nullable Either<ComponentHolder, Component> displayName;
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     private @Nullable ComponentUtils.NumberFormat numberFormat;
 
@@ -64,7 +65,7 @@ public class UpdateScorePacket extends VeloPacket {
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     public UpdateScorePacket(String entityName, String objectiveName, int value) {
-        this(entityName, objectiveName, value, null, null);
+        this(entityName, objectiveName, value, (Component) null, null);
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
@@ -72,7 +73,16 @@ public class UpdateScorePacket extends VeloPacket {
         this.entityName = entityName;
         this.objectiveName = objectiveName;
         this.value = value;
-        this.displayName = displayName;
+        this.displayName = displayName != null ? Either.secondary(displayName) : null;
+        this.numberFormat = numberFormat;
+    }
+
+    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    public UpdateScorePacket(String entityName, String objectiveName, int value, @Nullable ComponentHolder displayName, @Nullable ComponentUtils.NumberFormat numberFormat) {
+        this.entityName = entityName;
+        this.objectiveName = objectiveName;
+        this.value = value;
+        this.displayName = displayName != null ? Either.primary(displayName) : null;
         this.numberFormat = numberFormat;
     }
 
@@ -88,10 +98,11 @@ public class UpdateScorePacket extends VeloPacket {
             value = ProtocolUtils.readVarInt(buffer);
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
             if (buffer.readBoolean())
-                displayName = ComponentHolder.read(buffer, protocolVersion).getComponent();
+                displayName = Either.primary(ComponentHolder.read(buffer, protocolVersion));
             if (buffer.readBoolean()) {
                 numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
                     case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
+                    case 1 -> throw new IllegalStateException("Styled number format not implemented");
                     case 2 -> new ComponentUtils.NumberFormatFixed(ComponentHolder.read(buffer, protocolVersion));
                     default ->
                             throw new IllegalStateException("Invalid number format: " + ProtocolUtils.readVarInt(buffer));
@@ -110,17 +121,28 @@ public class UpdateScorePacket extends VeloPacket {
         if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20) && objectiveName.length() > 16)
             throw new IllegalStateException("objective name can only be 16 chars long");
         ProtocolUtils.writeString(buffer, objectiveName);
-        if ((protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_3) && action == Action.CREATE_OR_UPDATE_SCORE) || protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3))
+        if ((protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_3)
+                && action == Action.CREATE_OR_UPDATE_SCORE)
+                || protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3))
             ProtocolUtils.writeVarInt(buffer, value);
         if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
             buffer.writeBoolean(displayName != null);
-            if (displayName != null)
-                new ComponentHolder(protocolVersion, displayName).write(buffer);
+            if (displayName != null) {
+                if (displayName.isPrimary()) {
+                    if (ComponentUtils.getVersion(displayName.getPrimary()).equals(protocolVersion)) {
+                        new ComponentHolder(protocolVersion, displayName.getPrimary().getComponent()).write(buffer);
+                    } else {
+                        displayName.getPrimary().write(buffer);
+                    }
+                } else {
+                    new ComponentHolder(protocolVersion, displayName.getSecondary()).write(buffer);
+                }
+            }
             buffer.writeBoolean(numberFormat != null);
             if (numberFormat != null) {
                 ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
                 if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
-                    numberFormatFixed.getContent().write(buffer);
+                    numberFormatFixed.write(buffer, protocolVersion);
                 }
             }
         }
@@ -171,12 +193,23 @@ public class UpdateScorePacket extends VeloPacket {
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     public @Nullable Component displayName() {
-        return displayName;
+        if (displayName == null) return null;
+        if (displayName.isPrimary()) {
+            return displayName.getPrimary().getComponent();
+        } else {
+            return displayName.getSecondary();
+        }
     }
 
     @Since(ProtocolVersion.MINECRAFT_1_20_3)
     public UpdateScorePacket displayName(@Nullable Component displayName) {
-        this.displayName = displayName;
+        this.displayName = Either.secondary(displayName);
+        return this;
+    }
+
+    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    public UpdateScorePacket displayName(@Nullable ComponentHolder displayName) {
+        this.displayName = Either.primary(displayName);
         return this;
     }
 
@@ -191,6 +224,7 @@ public class UpdateScorePacket extends VeloPacket {
         return this;
     }
 
+    @Until(ProtocolVersion.MINECRAFT_1_20_2)
     public enum Action {
         CREATE_OR_UPDATE_SCORE, REMOVE_SCORE
     }

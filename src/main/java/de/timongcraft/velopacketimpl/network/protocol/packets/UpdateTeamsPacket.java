@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.NamedTextColorUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
@@ -106,8 +107,11 @@ public class UpdateTeamsPacket extends VeloPacket {
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
             if (teamDisplayName.isPrimary()) {
-                // breaks if packet is read in vX and written to vY
-                teamDisplayName.getPrimary().write(buffer);
+                if (ComponentUtils.getVersion(teamDisplayName.getPrimary()).equals(protocolVersion)) {
+                    new ComponentHolder(protocolVersion, teamDisplayName.getPrimary().getComponent()).write(buffer);
+                } else {
+                    teamDisplayName.getPrimary().write(buffer);
+                }
             } else {
                 new ComponentHolder(protocolVersion, teamDisplayName.getSecondary()).write(buffer);
             }
@@ -116,14 +120,20 @@ public class UpdateTeamsPacket extends VeloPacket {
             collisionRule.write(buffer, protocolVersion);
             ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
             if (teamPrefix.isPrimary()) {
-                // breaks if packet is read in vX and written to vY
-                teamPrefix.getPrimary().write(buffer);
+                if (ComponentUtils.getVersion(teamPrefix.getPrimary()).equals(protocolVersion)) {
+                    new ComponentHolder(protocolVersion, teamPrefix.getPrimary().getComponent()).write(buffer);
+                } else {
+                    teamPrefix.getPrimary().write(buffer);
+                }
             } else {
                 new ComponentHolder(protocolVersion, teamPrefix.getSecondary()).write(buffer);
             }
             if (teamSuffix.isPrimary()) {
-                // breaks if packet is read in vX and written to vY
-                teamSuffix.getPrimary().write(buffer);
+                if (ComponentUtils.getVersion(teamSuffix.getPrimary()).equals(protocolVersion)) {
+                    new ComponentHolder(protocolVersion, teamSuffix.getPrimary().getComponent()).write(buffer);
+                } else {
+                    teamSuffix.getPrimary().write(buffer);
+                }
             } else {
                 new ComponentHolder(protocolVersion, teamSuffix.getSecondary()).write(buffer);
             }
@@ -172,6 +182,11 @@ public class UpdateTeamsPacket extends VeloPacket {
 
     public UpdateTeamsPacket teamDisplayName(Component teamDisplayName) {
         this.teamDisplayName = Either.secondary(teamDisplayName);
+        return this;
+    }
+
+    public UpdateTeamsPacket teamDisplayName(ComponentHolder teamDisplayName) {
+        this.teamDisplayName = Either.primary(teamDisplayName);
         return this;
     }
 
@@ -224,6 +239,11 @@ public class UpdateTeamsPacket extends VeloPacket {
         return this;
     }
 
+    public UpdateTeamsPacket teamPrefix(ComponentHolder teamPrefix) {
+        this.teamPrefix = Either.primary(teamPrefix);
+        return this;
+    }
+
     public Component teamSuffix() {
         if (teamSuffix.isPrimary()) {
             return teamSuffix.getPrimary().getComponent();
@@ -234,6 +254,11 @@ public class UpdateTeamsPacket extends VeloPacket {
 
     public UpdateTeamsPacket teamSuffix(Component teamSuffix) {
         this.teamSuffix = Either.secondary(teamSuffix);
+        return this;
+    }
+
+    public UpdateTeamsPacket teamSuffix(ComponentHolder teamSuffix) {
+        this.teamSuffix = Either.primary(teamSuffix);
         return this;
     }
 
