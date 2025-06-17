@@ -40,6 +40,7 @@ public class ScreenClosePacket extends VeloPacket {
                 .mapping(0x0E, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
                 .mapping(0x0F, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x11, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x12, ProtocolVersion.MINECRAFT_1_21_6, encodeOnly)
                 .register();
     }
 
