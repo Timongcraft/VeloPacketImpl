@@ -7,12 +7,13 @@ import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.NamedTextColorUtils;
+import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.jetbrains.annotations.ApiStatus;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -57,11 +58,23 @@ public class UpdateTeamsPacket extends VeloPacket {
 
     public UpdateTeamsPacket() {}
 
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, List<String> entities) {
-        this(teamName, mode, teamDisplayName, EnumSet.noneOf(FriendlyFlag.class), nameTagVisibility, collisionRule, null, null, null, entities);
+    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName,
+                             NameTagVisibility nameTagVisibility,
+                             CollisionRule collisionRule,
+                             List<String> entities) {
+        this(teamName, mode, teamDisplayName, EnumSet.noneOf(FriendlyFlag.class), nameTagVisibility, collisionRule,
+                null, null, null,
+                entities);
     }
 
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName, Set<FriendlyFlag> friendlyFlags, NameTagVisibility nameTagVisibility, CollisionRule collisionRule, NamedTextColor teamColor, Component teamPrefix, Component teamSuffix, List<String> entities) {
+    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName,
+                             Set<FriendlyFlag> friendlyFlags,
+                             NameTagVisibility nameTagVisibility,
+                             CollisionRule collisionRule,
+                             NamedTextColor teamColor,
+                             Component teamPrefix,
+                             Component teamSuffix,
+                             List<String> entities) {
         this.teamName = teamName;
         this.mode = mode;
         this.teamDisplayName = Either.secondary(teamDisplayName);
@@ -74,29 +87,46 @@ public class UpdateTeamsPacket extends VeloPacket {
         this.entities = entities;
     }
 
+    @ApiStatus.Internal
+    public UpdateTeamsPacket(String teamName, Mode mode, ComponentHolder teamDisplayName,
+                             Set<FriendlyFlag> friendlyFlags,
+                             NameTagVisibility nameTagVisibility,
+                             CollisionRule collisionRule,
+                             NamedTextColor teamColor,
+                             ComponentHolder teamPrefix,
+                             ComponentHolder teamSuffix,
+                             List<String> entities) {
+        this.teamName = teamName;
+        this.mode = mode;
+        this.teamDisplayName = Either.primary(teamDisplayName);
+        this.friendlyFlags = friendlyFlags;
+        this.nameTagVisibility = nameTagVisibility;
+        this.collisionRule = collisionRule;
+        this.teamColor = teamColor;
+        this.teamPrefix = Either.primary(teamPrefix);
+        this.teamSuffix = Either.primary(teamSuffix);
+        this.entities = entities;
+    }
+
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         decoded = true;
 
         teamName = ProtocolUtils.readString(buffer);
-        mode = Mode.values()[buffer.readByte()];
+        mode = Mode.values()[buffer.readByte()]; // handled as byte in vanilla
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            teamDisplayName = Either.primary(ComponentHolder.read(buffer, protocolVersion));
+            teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
             friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
             nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
             collisionRule = CollisionRule.read(buffer, protocolVersion);
             teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
-            teamPrefix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
-            teamSuffix = Either.primary(ComponentHolder.read(buffer, protocolVersion));
+            teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+            teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
-            int entityCount = ProtocolUtils.readVarInt(buffer);
-            entities = new ArrayList<>(entityCount);
-            for (int i = 0; i < entityCount; i++) {
-                entities.add(ProtocolUtils.readString(buffer));
-            }
+            entities = ExProtocolUtils.readList(buffer, () -> ProtocolUtils.readString(buffer));
         }
     }
 
@@ -106,51 +136,23 @@ public class UpdateTeamsPacket extends VeloPacket {
             throw new IllegalStateException("team name can only be 16 chars long");
         }
         ProtocolUtils.writeString(buffer, teamName);
-        buffer.writeByte(mode.ordinal());
+        buffer.writeByte(mode.ordinal()); // handled as byte in vanilla
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            if (teamDisplayName.isPrimary()) {
-                if (ComponentUtils.getVersion(teamDisplayName.getPrimary()).equals(protocolVersion)) {
-                    new ComponentHolder(protocolVersion, teamDisplayName.getPrimary().getComponent()).write(buffer);
-                } else {
-                    teamDisplayName.getPrimary().write(buffer);
-                }
-            } else {
-                new ComponentHolder(protocolVersion, teamDisplayName.getSecondary()).write(buffer);
-            }
+            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamDisplayName);
             buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
             nameTagVisibility.write(buffer, protocolVersion);
             collisionRule.write(buffer, protocolVersion);
             ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
-            if (teamPrefix.isPrimary()) {
-                if (ComponentUtils.getVersion(teamPrefix.getPrimary()).equals(protocolVersion)) {
-                    new ComponentHolder(protocolVersion, teamPrefix.getPrimary().getComponent()).write(buffer);
-                } else {
-                    teamPrefix.getPrimary().write(buffer);
-                }
-            } else {
-                new ComponentHolder(protocolVersion, teamPrefix.getSecondary()).write(buffer);
-            }
-            if (teamSuffix.isPrimary()) {
-                if (ComponentUtils.getVersion(teamSuffix.getPrimary()).equals(protocolVersion)) {
-                    new ComponentHolder(protocolVersion, teamSuffix.getPrimary().getComponent()).write(buffer);
-                } else {
-                    teamSuffix.getPrimary().write(buffer);
-                }
-            } else {
-                new ComponentHolder(protocolVersion, teamSuffix.getSecondary()).write(buffer);
-            }
+            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamPrefix);
+            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamSuffix);
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
-            int entitiesSize = entities.size();
-            if (protocolVersion.lessThan(MINECRAFT_1_20) && entitiesSize > 40) {
+            if (protocolVersion.lessThan(MINECRAFT_1_20) && entities.size() > 40) {
                 throw new IllegalStateException("entities array can only have 40 entries");
             }
-            ProtocolUtils.writeVarInt(buffer, entities.size());
-            for (String entity : entities) {
-                ProtocolUtils.writeString(buffer, entity);
-            }
+            ExProtocolUtils.writeCollection(buffer, entities, entity -> ProtocolUtils.writeString(buffer, entity));
         }
     }
 
@@ -173,11 +175,7 @@ public class UpdateTeamsPacket extends VeloPacket {
     }
 
     public Component teamDisplayName() {
-        if (teamDisplayName.isPrimary()) {
-            return teamDisplayName.getPrimary().getComponent();
-        } else {
-            return teamDisplayName.getSecondary();
-        }
+        return ComponentUtils.getComponent(teamDisplayName);
     }
 
     public UpdateTeamsPacket teamDisplayName(Component teamDisplayName) {
@@ -185,8 +183,9 @@ public class UpdateTeamsPacket extends VeloPacket {
         return this;
     }
 
-    public UpdateTeamsPacket teamDisplayName(ComponentHolder teamDisplayName) {
-        this.teamDisplayName = Either.primary(teamDisplayName);
+    @ApiStatus.Internal
+    public UpdateTeamsPacket teamDisplayName(ComponentHolder teamDisplayNameHolder) {
+        this.teamDisplayName = Either.primary(teamDisplayNameHolder);
         return this;
     }
 
@@ -227,11 +226,7 @@ public class UpdateTeamsPacket extends VeloPacket {
     }
 
     public Component teamPrefix() {
-        if (teamPrefix.isPrimary()) {
-            return teamPrefix.getPrimary().getComponent();
-        } else {
-            return teamPrefix.getSecondary();
-        }
+        return ComponentUtils.getComponent(teamPrefix);
     }
 
     public UpdateTeamsPacket teamPrefix(Component teamPrefix) {
@@ -239,17 +234,14 @@ public class UpdateTeamsPacket extends VeloPacket {
         return this;
     }
 
-    public UpdateTeamsPacket teamPrefix(ComponentHolder teamPrefix) {
-        this.teamPrefix = Either.primary(teamPrefix);
+    @ApiStatus.Internal
+    public UpdateTeamsPacket teamPrefix(ComponentHolder teamPrefixHolder) {
+        this.teamPrefix = Either.primary(teamPrefixHolder);
         return this;
     }
 
     public Component teamSuffix() {
-        if (teamSuffix.isPrimary()) {
-            return teamSuffix.getPrimary().getComponent();
-        } else {
-            return teamSuffix.getSecondary();
-        }
+        return ComponentUtils.getComponent(teamSuffix);
     }
 
     public UpdateTeamsPacket teamSuffix(Component teamSuffix) {
@@ -257,8 +249,9 @@ public class UpdateTeamsPacket extends VeloPacket {
         return this;
     }
 
-    public UpdateTeamsPacket teamSuffix(ComponentHolder teamSuffix) {
-        this.teamSuffix = Either.primary(teamSuffix);
+    @ApiStatus.Internal
+    public UpdateTeamsPacket teamSuffix(ComponentHolder teamSuffixHolder) {
+        this.teamSuffix = Either.primary(teamSuffixHolder);
         return this;
     }
 
@@ -324,7 +317,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 return VALUES.get(ProtocolUtils.readString(buf));
             }
 
-            return values()[ProtocolUtils.readVarInt(buf)];
+            return ExProtocolUtils.readEnumByOrdinal(buf, NameTagVisibility.class);
         }
 
         static {
@@ -371,7 +364,7 @@ public class UpdateTeamsPacket extends VeloPacket {
                 return VALUES.get(ProtocolUtils.readString(buf));
             }
 
-            return values()[ProtocolUtils.readVarInt(buf)];
+            return ExProtocolUtils.readEnumByOrdinal(buf, CollisionRule.class);
         }
 
         static {

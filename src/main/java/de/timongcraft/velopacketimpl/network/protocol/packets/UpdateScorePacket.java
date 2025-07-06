@@ -8,9 +8,11 @@ import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.annotations.Until;
+import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.ApiStatus;
 
 import javax.annotation.Nullable;
 
@@ -78,6 +80,7 @@ public class UpdateScorePacket extends VeloPacket {
         this.numberFormat = numberFormat;
     }
 
+    @ApiStatus.Internal
     @Since(MINECRAFT_1_20_3)
     public UpdateScorePacket(String entityName, String objectiveName, int value, @Nullable ComponentHolder displayName, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.entityName = entityName;
@@ -93,7 +96,7 @@ public class UpdateScorePacket extends VeloPacket {
 
         entityName = ProtocolUtils.readString(buffer);
         if (protocolVersion.lessThan(MINECRAFT_1_20_3)) {
-            action = Action.values()[ProtocolUtils.readVarInt(buffer)];
+            action = ExProtocolUtils.readEnumByOrdinal(buffer, Action.class);
         }
         objectiveName = ProtocolUtils.readString(buffer);
         if ((protocolVersion.lessThan(MINECRAFT_1_20_3) && action == Action.CREATE_OR_UPDATE_SCORE)
@@ -101,18 +104,14 @@ public class UpdateScorePacket extends VeloPacket {
             value = ProtocolUtils.readVarInt(buffer);
         }
         if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
-            if (buffer.readBoolean()) {
-                displayName = Either.primary(ComponentHolder.read(buffer, protocolVersion));
-            }
-            if (buffer.readBoolean()) {
-                numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
-                    case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
-                    case 1 -> throw new IllegalStateException("Styled number format not implemented");
-                    case 2 -> new ComponentUtils.NumberFormatFixed(ComponentHolder.read(buffer, protocolVersion));
-                    default ->
-                            throw new IllegalStateException("Invalid number format: " + ProtocolUtils.readVarInt(buffer));
-                };
-            }
+            displayName = ExProtocolUtils.readOpt(buffer, () -> Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion)));
+            numberFormat = ExProtocolUtils.readOpt(buffer, () ->
+                    switch (ExProtocolUtils.readEnumByOrdinal(buffer, ComponentUtils.NumberFormatType.class)) {
+                        case BLANK -> ComponentUtils.NumberFormatBlank.getInstance();
+                        case STYLED -> throw new IllegalStateException("Styled number format not implemented");
+                        case FIXED -> new ComponentUtils.NumberFormatFixed(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                    }
+            );
         }
     }
 
@@ -135,25 +134,14 @@ public class UpdateScorePacket extends VeloPacket {
             ProtocolUtils.writeVarInt(buffer, value);
         }
         if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
-            buffer.writeBoolean(displayName != null);
-            if (displayName != null) {
-                if (displayName.isPrimary()) {
-                    if (ComponentUtils.getVersion(displayName.getPrimary()).equals(protocolVersion)) {
-                        new ComponentHolder(protocolVersion, displayName.getPrimary().getComponent()).write(buffer);
-                    } else {
-                        displayName.getPrimary().write(buffer);
-                    }
-                } else {
-                    new ComponentHolder(protocolVersion, displayName.getSecondary()).write(buffer);
-                }
-            }
-            buffer.writeBoolean(numberFormat != null);
-            if (numberFormat != null) {
-                ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
-                if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
+            ExProtocolUtils.writeOpt(buffer, displayName, internalDisplayName ->
+                    ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, internalDisplayName));
+            ExProtocolUtils.writeOpt(buffer, numberFormat, format -> {
+                ExProtocolUtils.writeEnumOrdinal(buffer, format.getType());
+                if (format instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
                     numberFormatFixed.write(buffer, protocolVersion);
                 }
-            }
+            });
         }
     }
 
@@ -198,11 +186,7 @@ public class UpdateScorePacket extends VeloPacket {
     @Since(MINECRAFT_1_20_3)
     public @Nullable Component displayName() {
         if (displayName == null) return null;
-        if (displayName.isPrimary()) {
-            return displayName.getPrimary().getComponent();
-        } else {
-            return displayName.getSecondary();
-        }
+        return ComponentUtils.getComponent(displayName);
     }
 
     @Since(MINECRAFT_1_20_3)

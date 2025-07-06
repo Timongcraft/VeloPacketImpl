@@ -7,9 +7,11 @@ import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
+import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.ApiStatus;
 
 import javax.annotation.Nullable;
 
@@ -41,7 +43,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
     private String objectiveName;
     private Mode mode;
     private Either<ComponentHolder, Component> objectiveValue;
-    private Type type;
+    private Type renderType;
     @Since(MINECRAFT_1_20_3)
     private ComponentUtils.NumberFormat numberFormat;
 
@@ -51,28 +53,29 @@ public class UpdateObjectivesPacket extends VeloPacket {
         this(objectiveName, mode, null, null);
     }
 
-    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type) {
+    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type renderType) {
         this.objectiveName = objectiveName;
         this.mode = mode;
         this.objectiveValue = Either.secondary(objectiveValue);
-        this.type = type;
+        this.renderType = renderType;
     }
 
     @Since(MINECRAFT_1_20_3)
-    public UpdateObjectivesPacket(String objectiveName, Mode mode, ComponentHolder objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
+    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type renderType, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.objectiveName = objectiveName;
         this.mode = mode;
-        this.objectiveValue = Either.primary(objectiveValue);
-        this.type = type;
+        this.objectiveValue = Either.secondary(objectiveValue);
+        this.renderType = renderType;
         this.numberFormat = numberFormat;
     }
 
+    @ApiStatus.Internal
     @Since(MINECRAFT_1_20_3)
-    public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
+    public UpdateObjectivesPacket(String objectiveName, Mode mode, ComponentHolder objectiveValue, Type renderType, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.objectiveName = objectiveName;
         this.mode = mode;
-        this.objectiveValue = Either.secondary(objectiveValue);
-        this.type = type;
+        this.objectiveValue = Either.primary(objectiveValue);
+        this.renderType = renderType;
         this.numberFormat = numberFormat;
     }
 
@@ -81,19 +84,17 @@ public class UpdateObjectivesPacket extends VeloPacket {
         decoded = true;
 
         objectiveName = ProtocolUtils.readString(buffer);
-        mode = Mode.values()[buffer.readByte()];
+        mode = Mode.values()[buffer.readByte()]; // handled as byte in vanilla
         if (mode != Mode.REMOVE_SCOREBOARD) {
-            objectiveValue = Either.primary(ComponentHolder.read(buffer, protocolVersion));
-            type = Type.values()[ProtocolUtils.readVarInt(buffer)];
+            objectiveValue = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+            renderType = ExProtocolUtils.readEnumByOrdinal(buffer, Type.class);
             if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
-                if (buffer.readBoolean()) {
-                    numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
-                        case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
-                        case 1 -> throw new IllegalStateException("Styled number format not implemented");
-                        case 2 -> new ComponentUtils.NumberFormatFixed(ComponentHolder.read(buffer, protocolVersion));
-                        default -> throw new IllegalStateException("Invalid number format: " + ProtocolUtils.readVarInt(buffer));
-                    };
-                }
+                numberFormat = ExProtocolUtils.readOpt(buffer, () ->
+                        switch (ExProtocolUtils.readEnumByOrdinal(buffer, ComponentUtils.NumberFormatType.class)) {
+                            case BLANK -> ComponentUtils.NumberFormatBlank.getInstance();
+                            case STYLED -> throw new IllegalStateException("Styled number format not implemented");
+                            case FIXED -> new ComponentUtils.NumberFormatFixed(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                        });
             }
         }
     }
@@ -104,28 +105,19 @@ public class UpdateObjectivesPacket extends VeloPacket {
             throw new IllegalStateException("objective name can only be 16 chars long");
         }
         ProtocolUtils.writeString(buffer, objectiveName);
-        buffer.writeByte(mode.ordinal());
+        buffer.writeByte(mode.ordinal()); // handled as byte in vanilla
         if (mode != Mode.REMOVE_SCOREBOARD) {
-            if (objectiveValue.isPrimary()) {
-                if (ComponentUtils.getVersion(objectiveValue.getPrimary()).equals(protocolVersion)) {
-                    new ComponentHolder(protocolVersion, objectiveValue.getPrimary().getComponent()).write(buffer);
-                } else {
-                    objectiveValue.getPrimary().write(buffer);
-                }
-            } else {
-                new ComponentHolder(protocolVersion, objectiveValue.getSecondary()).write(buffer);
-            }
-            buffer.writeByte(type.ordinal());
+            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, objectiveValue);
+            ExProtocolUtils.writeEnumOrdinal(buffer, renderType);
             if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
-                buffer.writeBoolean(numberFormat != null);
-                if (numberFormat != null) {
-                    ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
-                    if (numberFormat instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
+                ExProtocolUtils.writeOpt(buffer, numberFormat, format -> {
+                    ExProtocolUtils.writeEnumOrdinal(buffer, format.getType());
+                    if (format instanceof ComponentUtils.NumberFormatFixed numberFormatFixed) {
                         numberFormatFixed.write(buffer, protocolVersion);
                     } /*else if (numberFormat instanceof ComponentUtils.NumberFormatStyled) {
                         throw new IllegalStateException("Styled number format not implemented");
                     }*/
-                }
+                });
             }
         }
     }
@@ -149,11 +141,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
     }
 
     public Component objectiveValue() {
-        if (objectiveValue.isPrimary()) {
-            return objectiveValue.getPrimary().getComponent();
-        } else {
-            return objectiveValue.getSecondary();
-        }
+        return ComponentUtils.getComponent(objectiveValue);
     }
 
     public UpdateObjectivesPacket objectiveValue(Component objectiveValue) {
@@ -161,17 +149,18 @@ public class UpdateObjectivesPacket extends VeloPacket {
         return this;
     }
 
-    public UpdateObjectivesPacket objectiveValue(ComponentHolder objectiveValue) {
-        this.objectiveValue = Either.primary(objectiveValue);
+    @ApiStatus.Internal
+    public UpdateObjectivesPacket objectiveValue(ComponentHolder objectiveValueHolder) {
+        this.objectiveValue = Either.primary(objectiveValueHolder);
         return this;
     }
 
     public Type type() {
-        return type;
+        return renderType;
     }
 
     public UpdateObjectivesPacket type(Type type) {
-        this.type = type;
+        this.renderType = type;
         return this;
     }
 

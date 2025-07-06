@@ -7,9 +7,11 @@ import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
+import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.ApiStatus;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
 
@@ -42,13 +44,14 @@ public class SystemChatMessagePacket extends VeloPacket {
 
     public SystemChatMessagePacket() {}
 
-    public SystemChatMessagePacket(ComponentHolder content, boolean overlay) {
-        this.content = Either.primary(content);
+    public SystemChatMessagePacket(Component content, boolean overlay) {
+        this.content = Either.secondary(content);
         this.overlay = overlay;
     }
 
-    public SystemChatMessagePacket(Component content, boolean overlay) {
-        this.content = Either.secondary(content);
+    @ApiStatus.Internal
+    public SystemChatMessagePacket(ComponentHolder content, boolean overlay) {
+        this.content = Either.primary(content);
         this.overlay = overlay;
     }
 
@@ -56,30 +59,18 @@ public class SystemChatMessagePacket extends VeloPacket {
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         decoded = true;
 
-        content = Either.primary(ComponentHolder.read(buffer, protocolVersion));
+        content = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
         overlay = buffer.readBoolean();
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (content.isPrimary()) {
-            if (ComponentUtils.getVersion(content.getPrimary()).equals(protocolVersion)) {
-                new ComponentHolder(protocolVersion, content.getPrimary().getComponent()).write(buffer);
-            } else {
-                content.getPrimary().write(buffer);
-            }
-        } else {
-            new ComponentHolder(protocolVersion, content.getSecondary()).write(buffer);
-        }
+        ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, content);
         buffer.writeBoolean(overlay);
     }
 
     public Component content() {
-        if (content.isPrimary()) {
-            return content.getPrimary().getComponent();
-        } else {
-            return content.getSecondary();
-        }
+        return ComponentUtils.getComponent(content);
     }
 
     public SystemChatMessagePacket content(Component content) {
@@ -87,8 +78,9 @@ public class SystemChatMessagePacket extends VeloPacket {
         return this;
     }
 
-    public SystemChatMessagePacket content(ComponentHolder content) {
-        this.content = Either.primary(content);
+    @ApiStatus.Internal
+    public SystemChatMessagePacket content(ComponentHolder contentHolder) {
+        this.content = Either.primary(contentHolder);
         return this;
     }
 

@@ -4,6 +4,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
+import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
@@ -49,18 +50,13 @@ public class ResetScorePacket extends VeloPacket {
         decoded = true;
 
         entityName = ProtocolUtils.readString(buffer);
-        if (buffer.readBoolean()) {
-            objectiveName = ProtocolUtils.readString(buffer);
-        }
+        objectiveName = ExProtocolUtils.readOptString(buffer);
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buffer, entityName);
-        buffer.writeBoolean(objectiveName != null);
-        if (objectiveName != null) {
-            ProtocolUtils.writeString(buffer, objectiveName);
-        }
+        ExProtocolUtils.writeOptString(buffer, objectiveName);
     }
 
     public String entityName() {

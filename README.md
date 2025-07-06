@@ -1,6 +1,6 @@
 # VeloPacketImpl
 
-Packet implementations for Velocity (1.18.2-1.21.5)
+Packet implementations for Velocity (1.18.2-1.21.7)
 
 ## Getting started
 Note: You can find the current version [here](https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl).

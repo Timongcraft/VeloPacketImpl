@@ -30,6 +30,14 @@ public class ComponentUtils {
         return (ProtocolVersion) ComponentHolder$version.get(holder);
     }
 
+    public static Component getComponent(Either<ComponentHolder, Component> internalComponent) {
+        if (internalComponent.isPrimary()) {
+            return internalComponent.getPrimary().getComponent();
+        } else {
+            return internalComponent.getSecondary();
+        }
+    }
+
     public enum NumberFormatType {
 
         BLANK,
