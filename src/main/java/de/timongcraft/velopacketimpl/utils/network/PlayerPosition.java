@@ -29,8 +29,9 @@ public class PlayerPosition {
     public void write(ByteBuf buffer, boolean legacy) {
         pos.write(buffer);
         if (!legacy) {
-            if (deltaMovement == null)
+            if (deltaMovement == null) {
                 throw new IllegalStateException("Legacy pos written as modern");
+            }
 
             deltaMovement.write(buffer);
         }

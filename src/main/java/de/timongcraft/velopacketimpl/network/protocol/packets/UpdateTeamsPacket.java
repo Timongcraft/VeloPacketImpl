@@ -1,7 +1,6 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -20,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.velocitypowered.api.network.ProtocolVersion.*;
+
 /**
  * (latest) Resource Id: 'minecraft:set_player_team'
  */
@@ -31,15 +32,15 @@ public class UpdateTeamsPacket extends VeloPacket {
                 .direction(ProtocolUtils.Direction.CLIENTBOUND)
                 .packetSupplier(UpdateTeamsPacket::new)
                 .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x55, ProtocolVersion.MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x58, ProtocolVersion.MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x56, ProtocolVersion.MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x5A, ProtocolVersion.MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x5C, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x60, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x67, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x66, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x55, MINECRAFT_1_18_2, encodeOnly)
+                .mapping(0x58, MINECRAFT_1_19_1, encodeOnly)
+                .mapping(0x56, MINECRAFT_1_19_3, encodeOnly)
+                .mapping(0x5A, MINECRAFT_1_19_4, encodeOnly)
+                .mapping(0x5C, MINECRAFT_1_20_2, encodeOnly)
+                .mapping(0x5E, MINECRAFT_1_20_3, encodeOnly)
+                .mapping(0x60, MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x67, MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x66, MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 
@@ -93,15 +94,17 @@ public class UpdateTeamsPacket extends VeloPacket {
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
             int entityCount = ProtocolUtils.readVarInt(buffer);
             entities = new ArrayList<>(entityCount);
-            for (int i = 0; i < entityCount; i++)
+            for (int i = 0; i < entityCount; i++) {
                 entities.add(ProtocolUtils.readString(buffer));
+            }
         }
     }
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20) && teamName.length() > 16)
+        if (protocolVersion.lessThan(MINECRAFT_1_20) && teamName.length() > 16) {
             throw new IllegalStateException("team name can only be 16 chars long");
+        }
         ProtocolUtils.writeString(buffer, teamName);
         buffer.writeByte(mode.ordinal());
 
@@ -141,17 +144,14 @@ public class UpdateTeamsPacket extends VeloPacket {
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
             int entitiesSize = entities.size();
-            if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20) && entitiesSize > 40)
+            if (protocolVersion.lessThan(MINECRAFT_1_20) && entitiesSize > 40) {
                 throw new IllegalStateException("entities array can only have 40 entries");
+            }
             ProtocolUtils.writeVarInt(buffer, entities.size());
-            for (String entity : entities)
+            for (String entity : entities) {
                 ProtocolUtils.writeString(buffer, entity);
+            }
         }
-    }
-
-    @Override
-    public boolean handle(MinecraftSessionHandler handler) {
-        return false;
     }
 
     public String teamName() {
@@ -295,16 +295,19 @@ public class UpdateTeamsPacket extends VeloPacket {
 
         public static Set<FriendlyFlag> getFlags(int mask) {
             Set<FriendlyFlag> flags = EnumSet.noneOf(FriendlyFlag.class);
-            for (FriendlyFlag flag : FriendlyFlag.values())
-                if (flag.isSet(mask))
+            for (FriendlyFlag flag : FriendlyFlag.values()) {
+                if (flag.isSet(mask)) {
                     flags.add(flag);
+                }
+            }
             return flags;
         }
 
         public static int getBit(Set<FriendlyFlag> flags) {
             int mask = 0;
-            for (FriendlyFlag flag : flags)
+            for (FriendlyFlag flag : flags) {
                 mask |= flag.getMask();
+            }
             return mask;
         }
 
@@ -317,7 +320,7 @@ public class UpdateTeamsPacket extends VeloPacket {
         private static final Map<String, NameTagVisibility> VALUES = new HashMap<>();
 
         public static NameTagVisibility read(ByteBuf buf, ProtocolVersion version) {
-            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+            if (version.lessThan(MINECRAFT_1_21_5)) {
                 return VALUES.get(ProtocolUtils.readString(buf));
             }
 
@@ -325,8 +328,9 @@ public class UpdateTeamsPacket extends VeloPacket {
         }
 
         static {
-            for (NameTagVisibility value : values())
+            for (NameTagVisibility value : values()) {
                 VALUES.put(value.getKey(), value);
+            }
         }
 
         private final String key;
@@ -336,9 +340,10 @@ public class UpdateTeamsPacket extends VeloPacket {
         }
 
         public void write(ByteBuf buf, ProtocolVersion version) {
-            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
-                if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
+            if (version.lessThan(MINECRAFT_1_21_5)) {
+                if (version.equals(MINECRAFT_1_19_4) && key.length() > 32) {
                     throw new IllegalStateException("name tag visibility can only be 32 chars long");
+                }
                 ProtocolUtils.writeString(buf, key);
                 return;
             }
@@ -362,7 +367,7 @@ public class UpdateTeamsPacket extends VeloPacket {
         private static final Map<String, CollisionRule> VALUES = new HashMap<>();
 
         public static CollisionRule read(ByteBuf buf, ProtocolVersion version) {
-            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+            if (version.lessThan(MINECRAFT_1_21_5)) {
                 return VALUES.get(ProtocolUtils.readString(buf));
             }
 
@@ -381,9 +386,10 @@ public class UpdateTeamsPacket extends VeloPacket {
         }
 
         public void write(ByteBuf buf, ProtocolVersion version) {
-            if (version.lessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
-                if (version.equals(ProtocolVersion.MINECRAFT_1_19_4) && key.length() > 32)
+            if (version.lessThan(MINECRAFT_1_21_5)) {
+                if (version.equals(MINECRAFT_1_19_4) && key.length() > 32) {
                     throw new IllegalStateException("name tag visibility can only be 32 chars long");
+                }
                 ProtocolUtils.writeString(buf, key);
                 return;
             }

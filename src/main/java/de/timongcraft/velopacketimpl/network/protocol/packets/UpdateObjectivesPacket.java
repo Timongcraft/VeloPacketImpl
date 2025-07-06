@@ -1,7 +1,6 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -14,6 +13,8 @@ import net.kyori.adventure.text.Component;
 
 import javax.annotation.Nullable;
 
+import static com.velocitypowered.api.network.ProtocolVersion.*;
+
 /**
  * (latest) Resource Id: 'minecraft:set_objective'
  */
@@ -25,15 +26,15 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 .direction(ProtocolUtils.Direction.CLIENTBOUND)
                 .packetSupplier(UpdateObjectivesPacket::new)
                 .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x53, ProtocolVersion.MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x56, ProtocolVersion.MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x54, ProtocolVersion.MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x58, ProtocolVersion.MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x5A, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x5C, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x5E, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x64, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x63, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x53, MINECRAFT_1_18_2, encodeOnly)
+                .mapping(0x56, MINECRAFT_1_19_1, encodeOnly)
+                .mapping(0x54, MINECRAFT_1_19_3, encodeOnly)
+                .mapping(0x58, MINECRAFT_1_19_4, encodeOnly)
+                .mapping(0x5A, MINECRAFT_1_20_2, encodeOnly)
+                .mapping(0x5C, MINECRAFT_1_20_3, encodeOnly)
+                .mapping(0x5E, MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x64, MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x63, MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 
@@ -41,7 +42,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
     private Mode mode;
     private Either<ComponentHolder, Component> objectiveValue;
     private Type type;
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    @Since(MINECRAFT_1_20_3)
     private ComponentUtils.NumberFormat numberFormat;
 
     public UpdateObjectivesPacket() {}
@@ -57,7 +58,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
         this.type = type;
     }
 
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    @Since(MINECRAFT_1_20_3)
     public UpdateObjectivesPacket(String objectiveName, Mode mode, ComponentHolder objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.objectiveName = objectiveName;
         this.mode = mode;
@@ -66,7 +67,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
         this.numberFormat = numberFormat;
     }
 
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    @Since(MINECRAFT_1_20_3)
     public UpdateObjectivesPacket(String objectiveName, Mode mode, Component objectiveValue, Type type, @Nullable ComponentUtils.NumberFormat numberFormat) {
         this.objectiveName = objectiveName;
         this.mode = mode;
@@ -84,14 +85,13 @@ public class UpdateObjectivesPacket extends VeloPacket {
         if (mode != Mode.REMOVE_SCOREBOARD) {
             objectiveValue = Either.primary(ComponentHolder.read(buffer, protocolVersion));
             type = Type.values()[ProtocolUtils.readVarInt(buffer)];
-            if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
+            if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
                 if (buffer.readBoolean()) {
                     numberFormat = switch (ProtocolUtils.readVarInt(buffer)) {
                         case 0 -> ComponentUtils.NumberFormatBlank.getInstance();
                         case 1 -> throw new IllegalStateException("Styled number format not implemented");
                         case 2 -> new ComponentUtils.NumberFormatFixed(ComponentHolder.read(buffer, protocolVersion));
-                        default ->
-                                throw new IllegalStateException("Invalid number format: " + ProtocolUtils.readVarInt(buffer));
+                        default -> throw new IllegalStateException("Invalid number format: " + ProtocolUtils.readVarInt(buffer));
                     };
                 }
             }
@@ -100,8 +100,9 @@ public class UpdateObjectivesPacket extends VeloPacket {
 
     @Override
     public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20) && objectiveName.length() > 16)
+        if (protocolVersion.lessThan(MINECRAFT_1_20) && objectiveName.length() > 16) {
             throw new IllegalStateException("objective name can only be 16 chars long");
+        }
         ProtocolUtils.writeString(buffer, objectiveName);
         buffer.writeByte(mode.ordinal());
         if (mode != Mode.REMOVE_SCOREBOARD) {
@@ -115,7 +116,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 new ComponentHolder(protocolVersion, objectiveValue.getSecondary()).write(buffer);
             }
             buffer.writeByte(type.ordinal());
-            if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
+            if (protocolVersion.noLessThan(MINECRAFT_1_20_3)) {
                 buffer.writeBoolean(numberFormat != null);
                 if (numberFormat != null) {
                     ProtocolUtils.writeVarInt(buffer, numberFormat.getType().ordinal());
@@ -127,11 +128,6 @@ public class UpdateObjectivesPacket extends VeloPacket {
                 }
             }
         }
-    }
-
-    @Override
-    public boolean handle(MinecraftSessionHandler handler) {
-        return false;
     }
 
     public String objectiveName() {
@@ -179,12 +175,12 @@ public class UpdateObjectivesPacket extends VeloPacket {
         return this;
     }
 
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    @Since(MINECRAFT_1_20_3)
     public @Nullable ComponentUtils.NumberFormat numberFormat() {
         return numberFormat;
     }
 
-    @Since(ProtocolVersion.MINECRAFT_1_20_3)
+    @Since(MINECRAFT_1_20_3)
     public UpdateObjectivesPacket numberFormat(@Nullable ComponentUtils.NumberFormat numberFormat) {
         this.numberFormat = numberFormat;
         return this;

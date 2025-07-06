@@ -27,17 +27,19 @@ public class Either<L, R> {
     }
 
     public L getPrimary() {
-        if (!isPrimary())
-            throw new IllegalStateException("No primary value");
+        if (isPrimary()) {
+            return primary;
+        }
 
-        return primary;
+        throw new IllegalStateException("No primary value");
     }
 
     public R getSecondary() {
-        if (!isSecondary())
-            throw new IllegalStateException("No secondary value");
+        if (!isSecondary()) {
+            return secondary;
+        }
 
-        return secondary;
+        throw new IllegalStateException("No secondary value");
     }
 
 }

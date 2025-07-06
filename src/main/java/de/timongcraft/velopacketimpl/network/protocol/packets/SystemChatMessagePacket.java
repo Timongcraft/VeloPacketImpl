@@ -1,7 +1,6 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -12,11 +11,13 @@ import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 
+import static com.velocitypowered.api.network.ProtocolVersion.*;
+
 /**
  * (latest) Resource Id: 'minecraft:system_chat'
  */
 @SuppressWarnings("unused")
-@Since(ProtocolVersion.MINECRAFT_1_19)
+@Since(MINECRAFT_1_19)
 public class SystemChatMessagePacket extends VeloPacket {
 
     public static void register(boolean encodeOnly) {
@@ -24,15 +25,15 @@ public class SystemChatMessagePacket extends VeloPacket {
                 .direction(ProtocolUtils.Direction.CLIENTBOUND)
                 .packetSupplier(SystemChatMessagePacket::new)
                 .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x5F, ProtocolVersion.MINECRAFT_1_19, encodeOnly)
-                .mapping(0x62, ProtocolVersion.MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x60, ProtocolVersion.MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x64, ProtocolVersion.MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x67, ProtocolVersion.MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x69, ProtocolVersion.MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x6C, ProtocolVersion.MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x73, ProtocolVersion.MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x72, ProtocolVersion.MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x5F, MINECRAFT_1_19, encodeOnly)
+                .mapping(0x62, MINECRAFT_1_19_1, encodeOnly)
+                .mapping(0x60, MINECRAFT_1_19_3, encodeOnly)
+                .mapping(0x64, MINECRAFT_1_19_4, encodeOnly)
+                .mapping(0x67, MINECRAFT_1_20_2, encodeOnly)
+                .mapping(0x69, MINECRAFT_1_20_3, encodeOnly)
+                .mapping(0x6C, MINECRAFT_1_20_5, encodeOnly)
+                .mapping(0x73, MINECRAFT_1_21_2, encodeOnly)
+                .mapping(0x72, MINECRAFT_1_21_5, encodeOnly)
                 .register();
     }
 
@@ -71,11 +72,6 @@ public class SystemChatMessagePacket extends VeloPacket {
             new ComponentHolder(protocolVersion, content.getSecondary()).write(buffer);
         }
         buffer.writeBoolean(overlay);
-    }
-
-    @Override
-    public boolean handle(MinecraftSessionHandler handler) {
-        return false;
     }
 
     public Component content() {
