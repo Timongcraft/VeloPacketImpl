@@ -35,7 +35,7 @@ public class Either<L, R> {
     }
 
     public R getSecondary() {
-        if (!isSecondary()) {
+        if (isSecondary()) {
             return secondary;
         }
 
