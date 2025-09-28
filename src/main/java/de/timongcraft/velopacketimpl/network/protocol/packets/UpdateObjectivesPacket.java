@@ -38,6 +38,7 @@ public class UpdateObjectivesPacket extends AbstractPacket {
                 .mapping(0x5E, MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x64, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x63, MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x68, MINECRAFT_1_21_9, encodeOnly)
                 .register();
     }
 

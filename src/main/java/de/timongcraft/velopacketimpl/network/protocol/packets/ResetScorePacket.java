@@ -29,6 +29,7 @@ public class ResetScorePacket extends AbstractPacket {
                 .mapping(0x44, MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x49, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x48, MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x4D, MINECRAFT_1_21_9, encodeOnly)
                 .register();
     }
 

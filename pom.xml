@@ -6,7 +6,7 @@
 
     <groupId>de.timongcraft</groupId>
     <artifactId>VeloPacketImpl</artifactId>
-    <version>3.1.4</version>
+    <version>3.1.5</version>
     <packaging>jar</packaging>
 
     <properties>

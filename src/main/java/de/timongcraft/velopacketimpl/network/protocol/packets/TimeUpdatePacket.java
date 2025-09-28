@@ -29,6 +29,7 @@ public class TimeUpdatePacket extends AbstractPacket {
                 .mapping(0x64, MINECRAFT_1_20_5, encodeOnly)
                 .mapping(0x6B, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x6A, MINECRAFT_1_21_5, encodeOnly)
+                .mapping(0x6F, MINECRAFT_1_21_9, encodeOnly)
                 .register();
     }
 
