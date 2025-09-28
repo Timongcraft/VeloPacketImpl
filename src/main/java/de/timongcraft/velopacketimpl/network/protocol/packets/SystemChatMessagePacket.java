@@ -4,6 +4,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
@@ -20,7 +21,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  */
 @SuppressWarnings("unused")
 @Since(MINECRAFT_1_19)
-public class SystemChatMessagePacket extends VeloPacket {
+public class SystemChatMessagePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(SystemChatMessagePacket.class)
@@ -57,7 +58,7 @@ public class SystemChatMessagePacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         content = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
         overlay = buffer.readBoolean();

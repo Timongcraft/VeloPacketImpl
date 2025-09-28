@@ -4,6 +4,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
@@ -21,7 +22,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:set_objective'
  */
 @SuppressWarnings("unused")
-public class UpdateObjectivesPacket extends VeloPacket {
+public class UpdateObjectivesPacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(UpdateObjectivesPacket.class)
@@ -81,7 +82,7 @@ public class UpdateObjectivesPacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         objectiveName = ProtocolUtils.readString(buffer);
         mode = Mode.values()[buffer.readByte()]; // handled as byte in vanilla

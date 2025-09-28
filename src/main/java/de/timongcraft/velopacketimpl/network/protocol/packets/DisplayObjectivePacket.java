@@ -3,6 +3,7 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
@@ -12,7 +13,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:set_display_objective'
  */
 @SuppressWarnings("unused")
-public class DisplayObjectivePacket extends VeloPacket {
+public class DisplayObjectivePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(DisplayObjectivePacket.class)
@@ -43,7 +44,7 @@ public class DisplayObjectivePacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         if (protocolVersion.noLessThan(MINECRAFT_1_20_2)) {
             position = ProtocolUtils.readVarInt(buffer);

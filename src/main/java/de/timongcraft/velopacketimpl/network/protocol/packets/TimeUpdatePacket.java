@@ -3,6 +3,7 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 
@@ -12,7 +13,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:set_time'
  */
 @SuppressWarnings("unused")
-public class TimeUpdatePacket extends VeloPacket {
+public class TimeUpdatePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(TimeUpdatePacket.class)
@@ -55,7 +56,7 @@ public class TimeUpdatePacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         worldAge = buffer.readLong();
         setTimeOfDay(buffer.readLong());

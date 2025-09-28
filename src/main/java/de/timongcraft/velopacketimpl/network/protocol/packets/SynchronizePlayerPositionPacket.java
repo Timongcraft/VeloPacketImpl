@@ -3,6 +3,7 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.annotations.Until;
 import de.timongcraft.velopacketimpl.utils.network.PlayerPosition;
@@ -18,7 +19,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:player_position'
  */
 @SuppressWarnings("unused")
-public class SynchronizePlayerPositionPacket extends VeloPacket {
+public class SynchronizePlayerPositionPacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(SynchronizePlayerPositionPacket.class)
@@ -45,7 +46,7 @@ public class SynchronizePlayerPositionPacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         if (protocolVersion.noGreaterThan(MINECRAFT_1_21)) {
             pos = PlayerPosition.read(buffer, true);

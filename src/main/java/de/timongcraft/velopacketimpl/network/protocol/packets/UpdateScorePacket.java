@@ -4,6 +4,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
@@ -22,7 +23,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:set_score'
  */
 @SuppressWarnings("unused")
-public class UpdateScorePacket extends VeloPacket {
+public class UpdateScorePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(UpdateScorePacket.class)
@@ -92,7 +93,7 @@ public class UpdateScorePacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         entityName = ProtocolUtils.readString(buffer);
         if (protocolVersion.lessThan(MINECRAFT_1_20_3)) {

@@ -3,6 +3,7 @@ package de.timongcraft.velopacketimpl.network.protocol.packets;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
@@ -17,7 +18,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  */
 @SuppressWarnings("unused")
 @Since(MINECRAFT_1_20_3)
-public class ResetScorePacket extends VeloPacket {
+public class ResetScorePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
         PacketRegistration.of(ResetScorePacket.class)
@@ -47,7 +48,7 @@ public class ResetScorePacket extends VeloPacket {
 
     @Override
     public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        decoded = true;
+        super.decode(buffer, direction, protocolVersion);
 
         entityName = ProtocolUtils.readString(buffer);
         objectiveName = ExProtocolUtils.readOptString(buffer);
