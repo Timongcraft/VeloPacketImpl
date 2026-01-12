@@ -1,5 +1,6 @@
 package de.timongcraft.velopacketimpl.utils.network.protocol;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
@@ -87,8 +88,15 @@ public class ExProtocolUtils {
         return collection;
     }
 
-    public static <T> List<T> readList(ByteBuf buf, Supplier<T> entryReader) {
-        return readCollection(buf, Lists::newArrayListWithCapacity, entryReader);
+    public static <T> ImmutableList<T> readList(ByteBuf buf, Supplier<T> entryReader) {
+        int size = ProtocolUtils.readVarInt(buf);
+        ImmutableList.Builder<T> builder = ImmutableList.builderWithExpectedSize(size);
+
+        for (int i = 0; i < size; i++) {
+            builder.add(entryReader.get());
+        }
+
+        return builder.build();
     }
 
     public static <T> void writeCollection(ByteBuf buf, Collection<T> collection, Consumer<T> entryWriter) {

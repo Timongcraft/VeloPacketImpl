@@ -1,0 +1,18 @@
+[versions]
+project = "4.0.0-SNAPSHOT"
+java = "17"
+velocity = "3.4.0-SNAPSHOT"
+#https://github.com/PaperMC/Velocity/blob/dev/3.0.0/gradle/libs.versions.toml
+adventure = "4.25.0"
+#https://github.com/PaperMC/Velocity/blob/dev/3.0.0/gradle/libs.versions.toml
+netty = "4.2.7.Final"
+#https://github.com/PaperMC/Velocity/blob/dev/3.0.0/gradle/libs.versions.toml
+fastutil = "8.5.15"
+
+[libraries]
+netty = { module = "io.netty:netty-all", version.ref = "netty" }
+velocity-api = { group = "com.velocitypowered", name = "velocity-api", version.ref = "velocity" }
+#velocity-proxy = { group = "com.velocitypowered", name = "velocity-proxy", version.ref = "velocity" } todo: revert
+velocity-proxy = { group = "com.velocitypowered", name = "local-velocity-immutable-packets-proxy", version.ref = "velocity" }
+adventure-nbt = { group = "net.kyori", name = "adventure-nbt", version.ref = "adventure" }
+fastutil = { group = "it.unimi.dsi", name = "fastutil", version.ref = "fastutil" }

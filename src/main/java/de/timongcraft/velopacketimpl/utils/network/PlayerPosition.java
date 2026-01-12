@@ -5,12 +5,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class PlayerPosition {
 
-    public static PlayerPosition read(ByteBuf buffer, boolean legacy) {
+    public static PlayerPosition read(ByteBuf buf, boolean legacy) {
         return new PlayerPosition(
-                Vec3d.read(buffer),
-                legacy ? null : Vec3d.read(buffer),
-                buffer.readFloat(),
-                buffer.readFloat()
+                Vec3d.read(buf),
+                legacy ? null : Vec3d.read(buf),
+                buf.readFloat(),
+                buf.readFloat()
         );
     }
 
@@ -26,17 +26,17 @@ public class PlayerPosition {
     private float yaw;
     private float pitch;
 
-    public void write(ByteBuf buffer, boolean legacy) {
-        pos.write(buffer);
+    public void write(ByteBuf buf, boolean legacy) {
+        pos.write(buf);
         if (!legacy) {
             if (deltaMovement == null) {
                 throw new IllegalStateException("Legacy pos written as modern");
             }
 
-            deltaMovement.write(buffer);
+            deltaMovement.write(buf);
         }
-        buffer.writeFloat(yaw);
-        buffer.writeFloat(pitch);
+        buf.writeFloat(yaw);
+        buf.writeFloat(pitch);
     }
 
     public Vec3d pos() {
@@ -49,7 +49,7 @@ public class PlayerPosition {
     }
 
     /**
-     * May return null if the position is legacy (<1.21.2)
+     * May return null if the position is legacy (&lt;1.21.2)
      */
     public @Nullable Vec3d deltaMovement() {
         return deltaMovement;

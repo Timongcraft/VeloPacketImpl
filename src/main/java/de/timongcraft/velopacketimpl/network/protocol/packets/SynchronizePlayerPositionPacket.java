@@ -1,119 +1,146 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.PacketCodec;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
-import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.annotations.Until;
 import de.timongcraft.velopacketimpl.utils.network.PlayerPosition;
-import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRangeFactory;
 import io.netty.buffer.ByteBuf;
-
 import java.util.EnumSet;
 import java.util.Set;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
+import static de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils.MultiVersionPacketProtocolState.PLAY;
 
 /**
- * (latest) Resource Id: 'minecraft:player_position'
+ * (latest) Resource ID: 'minecraft:player_position'
  */
 @SuppressWarnings("unused")
-public class SynchronizePlayerPositionPacket extends AbstractPacket {
+public class SynchronizePlayerPositionPacket implements MinecraftPacket {
+
+    @Until(MINECRAFT_1_19_3)
+    public static SynchronizePlayerPositionPacket ofLegacy(int teleportId, PlayerPosition pos, Set<Flag> flags, boolean dismountVehicle) {
+        return new SynchronizePlayerPositionPacket(teleportId, pos, flags, dismountVehicle);
+    }
+
+    public static SynchronizePlayerPositionPacket of(int teleportId, PlayerPosition pos, Set<Flag> flags) {
+        return new SynchronizePlayerPositionPacket(teleportId, pos, flags, false);
+    }
 
     public static void register(boolean encodeOnly) {
-        PacketRegistration.of(SynchronizePlayerPositionPacket.class)
-                .direction(ProtocolUtils.Direction.CLIENTBOUND)
-                .packetSupplier(SynchronizePlayerPositionPacket::new)
-                .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x38, MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x36, MINECRAFT_1_19, encodeOnly)
-                .mapping(0x39, MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x38, MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x3C, MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x3E, MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x40, MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x42, MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x41, MINECRAFT_1_21_5, encodeOnly)
-                .mapping(0x46, MINECRAFT_1_21_9, encodeOnly)
-                .register();
+        PacketRegistriesUtils.register(PLAY, ProtocolUtils.Direction.CLIENTBOUND,
+                SynchronizePlayerPositionPacket.class, Codec.INSTANCE,
+
+                PacketRangeFactory.entry(0x38, MINECRAFT_1_18_2, encodeOnly),
+                PacketRangeFactory.entry(0x36, MINECRAFT_1_19, encodeOnly),
+                PacketRangeFactory.entry(0x39, MINECRAFT_1_19_1, encodeOnly),
+                PacketRangeFactory.entry(0x38, MINECRAFT_1_19_3, encodeOnly),
+                PacketRangeFactory.entry(0x3C, MINECRAFT_1_19_4, encodeOnly),
+                PacketRangeFactory.entry(0x3E, MINECRAFT_1_20_2, encodeOnly),
+                PacketRangeFactory.entry(0x40, MINECRAFT_1_20_5, encodeOnly),
+                PacketRangeFactory.entry(0x42, MINECRAFT_1_21_2, encodeOnly),
+                PacketRangeFactory.entry(0x41, MINECRAFT_1_21_5, encodeOnly),
+                PacketRangeFactory.entry(0x46, MINECRAFT_1_21_9, encodeOnly));
     }
 
-    private int teleportId;
-    private PlayerPosition pos;
-    private Set<Flag> flags;
+    private final int teleportId;
+    private final PlayerPosition pos;
+    private final Set<Flag> flags;
     @Until(MINECRAFT_1_19_3)
-    private boolean dismountVehicle;
+    private final boolean dismountVehicle;
 
-    @Override
-    public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        super.decode(buffer, direction, protocolVersion);
-
-        if (protocolVersion.noGreaterThan(MINECRAFT_1_21)) {
-            pos = PlayerPosition.read(buffer, true);
-
-            flags = Flag.getFlags(buffer.readUnsignedByte());
-
-            teleportId = ProtocolUtils.readVarInt(buffer);
-
-            if (protocolVersion.noGreaterThan(MINECRAFT_1_19_3)) {
-                dismountVehicle = buffer.readBoolean();
-            }
-        } else {
-            teleportId = ProtocolUtils.readVarInt(buffer);
-
-            pos = PlayerPosition.read(buffer, false);
-
-            flags = Flag.getFlags(buffer.readInt());
-        }
-    }
-
-    @Override
-    public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (protocolVersion.noGreaterThan(MINECRAFT_1_21)) {
-            pos.write(buffer, true);
-
-            buffer.writeByte(Flag.getBitfield(flags));
-
-            ProtocolUtils.writeVarInt(buffer, teleportId);
-
-            if (protocolVersion.noGreaterThan(MINECRAFT_1_19_3)) {
-                buffer.writeBoolean(dismountVehicle);
-            }
-        } else {
-            ProtocolUtils.writeVarInt(buffer, teleportId);
-
-            pos.write(buffer, false);
-
-            buffer.writeInt(Flag.getBitfield(flags));
-        }
-    }
-
-    public PlayerPosition pos() {
-        return pos;
-    }
-
-    public SynchronizePlayerPositionPacket pos(PlayerPosition pos) {
+    private SynchronizePlayerPositionPacket(int teleportId, PlayerPosition pos, Set<Flag> flags,
+                                           @Until(MINECRAFT_1_19_3) boolean dismountVehicle) {
+        this.teleportId = teleportId;
         this.pos = pos;
-        return this;
-    }
-
-    public Set<Flag> flags() {
-        return flags;
-    }
-
-    public SynchronizePlayerPositionPacket flags(Set<Flag> flags) {
         this.flags = flags;
-        return this;
+        this.dismountVehicle = dismountVehicle;
+    }
+
+    public static class Codec implements PacketCodec<SynchronizePlayerPositionPacket> {
+
+        public static final Codec INSTANCE = new Codec();
+
+        @Override
+        public SynchronizePlayerPositionPacket decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            int teleportId;
+            PlayerPosition pos;
+            Set<Flag> flags;
+            @Until(MINECRAFT_1_19_3)
+            boolean dismountVehicle = false;
+
+            if (version.noLessThan(MINECRAFT_1_21_2)) {
+                teleportId = ProtocolUtils.readVarInt(buf);
+
+                pos = PlayerPosition.read(buf, false);
+
+                flags = Flag.getFlags(buf.readInt());
+            } else {
+                pos = PlayerPosition.read(buf, true);
+
+                flags = Flag.getFlags(buf.readUnsignedByte());
+
+                teleportId = ProtocolUtils.readVarInt(buf);
+
+                if (version.noGreaterThan(MINECRAFT_1_19_3)) {
+                    dismountVehicle = buf.readBoolean();
+                }
+            }
+
+            return new SynchronizePlayerPositionPacket(teleportId, pos, flags, dismountVehicle);
+        }
+
+        @Override
+        public void encode(SynchronizePlayerPositionPacket packet, ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            if (version.noLessThan(MINECRAFT_1_21_2)) {
+                ProtocolUtils.writeVarInt(buf, packet.teleportId);
+
+                packet.pos.write(buf, false);
+
+                buf.writeInt(Flag.getBitfield(packet.flags));
+            } else {
+                packet.pos.write(buf, true);
+
+                buf.writeByte(Flag.getBitfield(packet.flags));
+
+                ProtocolUtils.writeVarInt(buf, packet.teleportId);
+
+                if (version.noGreaterThan(MINECRAFT_1_19_3)) {
+                    buf.writeBoolean(packet.dismountVehicle);
+                }
+            }
+        }
+
+    }
+
+    @Override
+    public boolean handle(MinecraftSessionHandler handler) {
+        return false;
     }
 
     public int teleportId() {
         return teleportId;
     }
 
-    public SynchronizePlayerPositionPacket teleportId(int teleportId) {
-        this.teleportId = teleportId;
-        return this;
+    public PlayerPosition pos() {
+        return pos;
+    }
+
+    public Set<Flag> flags() {
+        return flags;
+    }
+
+    /**
+     * @implNote Returns false for versions >1.19.3
+     */
+    @Until(MINECRAFT_1_19_3)
+    public boolean dismountVehicle() {
+        return dismountVehicle;
     }
 
     public enum Flag {

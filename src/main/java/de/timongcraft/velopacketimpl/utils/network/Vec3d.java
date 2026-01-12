@@ -4,8 +4,8 @@ import io.netty.buffer.ByteBuf;
 
 public class Vec3d {
 
-    public static Vec3d read(ByteBuf buffer) {
-        return new Vec3d(buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
+    public static Vec3d read(ByteBuf buf) {
+        return new Vec3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
     }
 
     public Vec3d(double x, double y, double z) {
@@ -18,10 +18,10 @@ public class Vec3d {
     private double y;
     private double z;
 
-    public void write(ByteBuf buffer) {
-        buffer.writeDouble(x);
-        buffer.writeDouble(y);
-        buffer.writeDouble(z);
+    public void write(ByteBuf buf) {
+        buf.writeDouble(x);
+        buf.writeDouble(y);
+        buf.writeDouble(z);
     }
 
     public double getX() {

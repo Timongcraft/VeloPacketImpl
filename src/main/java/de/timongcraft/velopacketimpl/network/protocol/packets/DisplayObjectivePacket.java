@@ -1,93 +1,96 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.PacketCodec;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
-import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
-import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRangeFactory;
 import io.netty.buffer.ByteBuf;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
+import static de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils.MultiVersionPacketProtocolState.PLAY;
 
 /**
- * (latest) Resource Id: 'minecraft:set_display_objective'
+ * (latest) Resource ID: 'minecraft:set_display_objective'
  */
 @SuppressWarnings("unused")
-public class DisplayObjectivePacket extends AbstractPacket {
+public class DisplayObjectivePacket implements MinecraftPacket {
 
-    public static void register(boolean encodeOnly) {
-        PacketRegistration.of(DisplayObjectivePacket.class)
-                .direction(ProtocolUtils.Direction.CLIENTBOUND)
-                .packetSupplier(DisplayObjectivePacket::new)
-                .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x4C, MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x4F, MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x4D, MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x51, MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x53, MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x55, MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x57, MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x5C, MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x5B, MINECRAFT_1_21_5, encodeOnly)
-                .mapping(0x60, MINECRAFT_1_21_9, encodeOnly)
-                .register();
+    public static DisplayObjectivePacket of(int position, String scoreName) {
+        return new DisplayObjectivePacket(position, scoreName);
     }
 
-    private int position;
-    private String scoreName;
+    public static void register(boolean encodeOnly) {
+        PacketRegistriesUtils.register(PLAY, Direction.CLIENTBOUND,
+                DisplayObjectivePacket.class, Codec.INSTANCE,
+                PacketRangeFactory.entry(0x4C, MINECRAFT_1_18_2, encodeOnly),
+                PacketRangeFactory.entry(0x4F, MINECRAFT_1_19_1, encodeOnly),
+                PacketRangeFactory.entry(0x4D, MINECRAFT_1_19_3, encodeOnly),
+                PacketRangeFactory.entry(0x51, MINECRAFT_1_19_4, encodeOnly),
+                PacketRangeFactory.entry(0x53, MINECRAFT_1_20_2, encodeOnly),
+                PacketRangeFactory.entry(0x55, MINECRAFT_1_20_3, encodeOnly),
+                PacketRangeFactory.entry(0x57, MINECRAFT_1_20_5, encodeOnly),
+                PacketRangeFactory.entry(0x5C, MINECRAFT_1_21_2, encodeOnly),
+                PacketRangeFactory.entry(0x5B, MINECRAFT_1_21_5, encodeOnly),
+                PacketRangeFactory.entry(0x60, MINECRAFT_1_21_9, encodeOnly));
+    }
 
-    public DisplayObjectivePacket() {}
+    private final int position;
+    private final String scoreName;
 
-    public DisplayObjectivePacket(int position, String scoreName) {
-        position(position);
+    private DisplayObjectivePacket(int position, String scoreName) {
+        this.position = position;
         this.scoreName = scoreName;
     }
 
-    @Override
-    public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        super.decode(buffer, direction, protocolVersion);
+    public static class Codec implements PacketCodec<DisplayObjectivePacket> {
 
-        if (protocolVersion.noLessThan(MINECRAFT_1_20_2)) {
-            position = ProtocolUtils.readVarInt(buffer);
-        } else {
-            position = buffer.readByte();
+        public static final Codec INSTANCE = new Codec();
+
+        @Override
+        public DisplayObjectivePacket decode(ByteBuf buf, Direction direction, ProtocolVersion version) {
+            int position;
+            if (version.noLessThan(MINECRAFT_1_20_2)) {
+                position = ProtocolUtils.readVarInt(buf);
+            } else {
+                position = buf.readByte();
+            }
+
+            String scoreName = ProtocolUtils.readString(buf);
+
+            return new DisplayObjectivePacket(position, scoreName);
         }
-        scoreName = ProtocolUtils.readString(buffer);
+
+        @Override
+        public void encode(DisplayObjectivePacket packet, ByteBuf buf, Direction direction, ProtocolVersion version) {
+            if (version.noLessThan(MINECRAFT_1_20_2)) {
+                ProtocolUtils.writeVarInt(buf, packet.position);
+            } else {
+                buf.writeByte(packet.position);
+            }
+
+            if (version.lessThan(MINECRAFT_1_20) && packet.scoreName.length() > 16) {
+                throw new IllegalStateException("score name can only be 16 chars long");
+            }
+            ProtocolUtils.writeString(buf, packet.scoreName);
+        }
+
     }
 
     @Override
-    public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (protocolVersion.noLessThan(MINECRAFT_1_20_2)) {
-            ProtocolUtils.writeVarInt(buffer, position);
-        } else {
-            buffer.writeByte(position);
-        }
-
-        if (protocolVersion.lessThan(MINECRAFT_1_20) && scoreName.length() > 16) {
-            throw new IllegalStateException("score name can only be 16 chars long");
-        }
-        ProtocolUtils.writeString(buffer, scoreName);
+    public boolean handle(MinecraftSessionHandler handler) {
+        return false;
     }
 
     public int position() {
         return position;
     }
 
-    public DisplayObjectivePacket position(int position) {
-        if (position < 0 || position > 18) {
-            throw new IllegalStateException("position can only be 0-18");
-        }
-        this.position = position;
-        return this;
-    }
-
     public String scoreName() {
         return scoreName;
-    }
-
-    public DisplayObjectivePacket scoreName(String scoreName) {
-        this.scoreName = scoreName;
-        return this;
     }
 
 }

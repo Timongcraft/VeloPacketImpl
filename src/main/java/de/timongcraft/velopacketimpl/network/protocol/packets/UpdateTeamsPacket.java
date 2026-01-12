@@ -1,269 +1,356 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.PacketCodec;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
-import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.ComponentUtils;
 import de.timongcraft.velopacketimpl.utils.Either;
 import de.timongcraft.velopacketimpl.utils.NamedTextColorUtils;
 import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
-import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRangeFactory;
 import io.netty.buffer.ByteBuf;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.ApiStatus;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import static com.velocitypowered.api.network.ProtocolVersion.*;
+import static de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils.MultiVersionPacketProtocolState.PLAY;
 
 /**
- * (latest) Resource Id: 'minecraft:set_player_team'
+ * (latest) Resource ID: 'minecraft:set_player_team'
  */
 @SuppressWarnings("unused")
-public class UpdateTeamsPacket extends AbstractPacket {
+public class UpdateTeamsPacket implements MinecraftPacket {
 
-    public static void register(boolean encodeOnly) {
-        PacketRegistration.of(UpdateTeamsPacket.class)
-                .direction(ProtocolUtils.Direction.CLIENTBOUND)
-                .packetSupplier(UpdateTeamsPacket::new)
-                .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x55, MINECRAFT_1_18_2, encodeOnly)
-                .mapping(0x58, MINECRAFT_1_19_1, encodeOnly)
-                .mapping(0x56, MINECRAFT_1_19_3, encodeOnly)
-                .mapping(0x5A, MINECRAFT_1_19_4, encodeOnly)
-                .mapping(0x5C, MINECRAFT_1_20_2, encodeOnly)
-                .mapping(0x5E, MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x60, MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x67, MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x66, MINECRAFT_1_21_5, encodeOnly)
-                .mapping(0x6B, MINECRAFT_1_21_9, encodeOnly)
-                .register();
-    }
-
-    private String teamName;
-    private Mode mode;
-    private Either<ComponentHolder, Component> teamDisplayName;
-    private Set<FriendlyFlag> friendlyFlags;
-    private NameTagVisibility nameTagVisibility;
-    private CollisionRule collisionRule;
-    private NamedTextColor teamColor;
-    private Either<ComponentHolder, Component> teamPrefix;
-    private Either<ComponentHolder, Component> teamSuffix;
-    private List<String> entities;
-
-    public UpdateTeamsPacket() {}
-
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName,
-                             NameTagVisibility nameTagVisibility,
-                             CollisionRule collisionRule,
-                             List<String> entities) {
-        this(teamName, mode, teamDisplayName, EnumSet.noneOf(FriendlyFlag.class), nameTagVisibility, collisionRule,
-                null, null, null,
-                entities);
-    }
-
-    public UpdateTeamsPacket(String teamName, Mode mode, Component teamDisplayName,
-                             Set<FriendlyFlag> friendlyFlags,
-                             NameTagVisibility nameTagVisibility,
-                             CollisionRule collisionRule,
-                             NamedTextColor teamColor,
-                             Component teamPrefix,
-                             Component teamSuffix,
-                             List<String> entities) {
-        this.teamName = teamName;
-        this.mode = mode;
-        this.teamDisplayName = Either.secondary(teamDisplayName);
-        this.friendlyFlags = friendlyFlags;
-        this.nameTagVisibility = nameTagVisibility;
-        this.collisionRule = collisionRule;
-        this.teamColor = teamColor;
-        this.teamPrefix = Either.secondary(teamPrefix);
-        this.teamSuffix = Either.secondary(teamSuffix);
-        this.entities = entities;
+    public static UpdateTeamsPacket ofCreate(
+            String teamName, Component displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+            NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+            NamedTextColor teamColor, Component prefix, Component suffix,
+            ImmutableList<String> entities) {
+        return ofCreate(
+                teamName,
+                Either.secondary(displayName),
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                Either.secondary(prefix),
+                Either.secondary(suffix),
+                entities
+        );
     }
 
     @ApiStatus.Internal
-    public UpdateTeamsPacket(String teamName, Mode mode, ComponentHolder teamDisplayName,
-                             Set<FriendlyFlag> friendlyFlags,
-                             NameTagVisibility nameTagVisibility,
-                             CollisionRule collisionRule,
-                             NamedTextColor teamColor,
-                             ComponentHolder teamPrefix,
-                             ComponentHolder teamSuffix,
-                             List<String> entities) {
+    public static UpdateTeamsPacket ofCreate(
+            String teamName, ComponentHolder displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+            NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+            NamedTextColor teamColor, ComponentHolder prefix, ComponentHolder suffix,
+            ImmutableList<String> entities) {
+        return ofCreate(
+                teamName,
+                Either.primary(displayName),
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                Either.primary(prefix),
+                Either.primary(suffix),
+                entities
+        );
+    }
+
+    private static UpdateTeamsPacket ofCreate(
+            String teamName, Either<ComponentHolder, Component> displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+            NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+            NamedTextColor teamColor, Either<ComponentHolder, Component> prefix, Either<ComponentHolder, Component> suffix,
+            ImmutableList<String> entities) {
+        return new UpdateTeamsPacket(
+                teamName,
+                Mode.CREATE_TEAM,
+                displayName,
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                prefix,
+                suffix,
+                entities
+        );
+    }
+
+    public static UpdateTeamsPacket ofUpdateInfo(String teamName, Component displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+                                                 NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+                                                 NamedTextColor teamColor, Component prefix, Component suffix) {
+        return ofUpdateInfo(
+                teamName,
+                Either.secondary(displayName),
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                Either.secondary(prefix),
+                Either.secondary(suffix)
+        );
+    }
+
+    @ApiStatus.Internal
+    public static UpdateTeamsPacket ofUpdateInfo(String teamName, ComponentHolder displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+                                                 NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+                                                 NamedTextColor teamColor, ComponentHolder prefix, ComponentHolder suffix) {
+        return ofUpdateInfo(
+                teamName,
+                Either.primary(displayName),
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                Either.primary(prefix),
+                Either.primary(suffix)
+        );
+    }
+
+    private static UpdateTeamsPacket ofUpdateInfo(String teamName, Either<ComponentHolder, Component> displayName, ImmutableSet<FriendlyFlag> friendlyFlags,
+                                                  NameTagVisibility nameTagVisibility, CollisionRule collisionRule,
+                                                  NamedTextColor teamColor, Either<ComponentHolder, Component> prefix, Either<ComponentHolder, Component> suffix) {
+        return new UpdateTeamsPacket(
+                teamName,
+                Mode.UPDATE_TEAM_INFO,
+                displayName,
+                friendlyFlags,
+                nameTagVisibility,
+                collisionRule,
+                teamColor,
+                prefix,
+                suffix,
+                ImmutableList.of()
+        );
+    }
+
+    public static UpdateTeamsPacket ofAddEntities(String teamName, ImmutableList<String> entities) {
+        return new UpdateTeamsPacket(
+                teamName,
+                Mode.ADD_ENTITIES,
+                Either.secondary(Component.empty()),
+                ImmutableSet.of(),
+                NameTagVisibility.ALWAYS,
+                CollisionRule.ALWAYS,
+                NamedTextColor.WHITE,
+                Either.secondary(Component.empty()),
+                Either.secondary(Component.empty()),
+                entities
+        );
+    }
+
+    public static UpdateTeamsPacket ofRemoveEntities(String teamName, ImmutableList<String> entities) {
+        return new UpdateTeamsPacket(
+                teamName,
+                Mode.REMOVE_ENTITIES,
+                Either.secondary(Component.empty()),
+                ImmutableSet.of(),
+                NameTagVisibility.ALWAYS,
+                CollisionRule.ALWAYS,
+                NamedTextColor.WHITE,
+                Either.secondary(Component.empty()),
+                Either.secondary(Component.empty()),
+                entities
+        );
+    }
+
+    public static UpdateTeamsPacket ofRemove(String teamName) {
+        return new UpdateTeamsPacket(
+                teamName,
+                Mode.REMOVE_TEAM,
+                Either.secondary(Component.empty()),
+                ImmutableSet.of(),
+                NameTagVisibility.ALWAYS,
+                CollisionRule.ALWAYS,
+                NamedTextColor.WHITE,
+                Either.secondary(Component.empty()),
+                Either.secondary(Component.empty()),
+                ImmutableList.of()
+        );
+    }
+
+    public static void register(boolean encodeOnly) {
+        PacketRegistriesUtils.register(PLAY, ProtocolUtils.Direction.CLIENTBOUND,
+                UpdateTeamsPacket.class, UpdateTeamsPacket.Codec.INSTANCE,
+                PacketRangeFactory.entry(0x55, MINECRAFT_1_18_2, encodeOnly),
+                PacketRangeFactory.entry(0x58, MINECRAFT_1_19_1, encodeOnly),
+                PacketRangeFactory.entry(0x56, MINECRAFT_1_19_3, encodeOnly),
+                PacketRangeFactory.entry(0x5A, MINECRAFT_1_19_4, encodeOnly),
+                PacketRangeFactory.entry(0x5C, MINECRAFT_1_20_2, encodeOnly),
+                PacketRangeFactory.entry(0x5E, MINECRAFT_1_20_3, encodeOnly),
+                PacketRangeFactory.entry(0x60, MINECRAFT_1_20_5, encodeOnly),
+                PacketRangeFactory.entry(0x67, MINECRAFT_1_21_2, encodeOnly),
+                PacketRangeFactory.entry(0x66, MINECRAFT_1_21_5, encodeOnly),
+                PacketRangeFactory.entry(0x6B, MINECRAFT_1_21_9, encodeOnly));
+    }
+
+    private final String teamName;
+    private final Mode mode;
+    private final Either<ComponentHolder, Component> teamDisplayName;
+    private final ImmutableSet<FriendlyFlag> friendlyFlags;
+    private final NameTagVisibility nameTagVisibility;
+    private final CollisionRule collisionRule;
+    private final NamedTextColor teamColor;
+    private final Either<ComponentHolder, Component> teamPrefix;
+    private final Either<ComponentHolder, Component> teamSuffix;
+    private final ImmutableList<String> entities;
+
+    private UpdateTeamsPacket(String teamName, Mode mode,
+                              Either<ComponentHolder, Component> teamDisplayName,
+                              ImmutableSet<FriendlyFlag> friendlyFlags,
+                              NameTagVisibility nameTagVisibility,
+                              CollisionRule collisionRule,
+                              NamedTextColor teamColor,
+                              Either<ComponentHolder, Component> teamPrefix,
+                              Either<ComponentHolder, Component> teamSuffix,
+                              ImmutableList<String> entities) {
         this.teamName = teamName;
         this.mode = mode;
-        this.teamDisplayName = Either.primary(teamDisplayName);
+        this.teamDisplayName = teamDisplayName;
         this.friendlyFlags = friendlyFlags;
         this.nameTagVisibility = nameTagVisibility;
         this.collisionRule = collisionRule;
         this.teamColor = teamColor;
-        this.teamPrefix = Either.primary(teamPrefix);
-        this.teamSuffix = Either.primary(teamSuffix);
+        this.teamPrefix = teamPrefix;
+        this.teamSuffix = teamSuffix;
         this.entities = entities;
     }
 
-    @Override
-    public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        super.decode(buffer, direction, protocolVersion);
+    public static class Codec implements PacketCodec<UpdateTeamsPacket> {
 
-        teamName = ProtocolUtils.readString(buffer);
-        mode = Mode.values()[buffer.readByte()]; // handled as byte in vanilla
+        public static final UpdateTeamsPacket.Codec INSTANCE = new UpdateTeamsPacket.Codec();
 
-        if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
-            friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
-            nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
-            collisionRule = CollisionRule.read(buffer, protocolVersion);
-            teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
-            teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
-            teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+        @Override
+        public UpdateTeamsPacket decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            String teamName = ProtocolUtils.readString(buf);
+            Mode mode = Mode.values()[buf.readByte()]; // handled as byte in vanilla
+
+            Either<ComponentHolder, Component> teamDisplayName;
+            ImmutableSet<FriendlyFlag> friendlyFlags;
+            NameTagVisibility nameTagVisibility;
+            CollisionRule collisionRule;
+            NamedTextColor teamColor;
+            Either<ComponentHolder, Component> teamPrefix;
+            Either<ComponentHolder, Component> teamSuffix;
+            ImmutableList<String> entities;
+
+            if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
+                teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buf, version));
+                friendlyFlags = FriendlyFlag.getFlags(buf.readUnsignedByte());
+                nameTagVisibility = NameTagVisibility.read(buf, version);
+                collisionRule = CollisionRule.read(buf, version);
+                teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buf));
+                teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buf, version));
+                teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buf, version));
+            } else {
+                teamDisplayName = Either.secondary(Component.empty());
+                friendlyFlags = ImmutableSet.of();
+                nameTagVisibility = NameTagVisibility.ALWAYS; //see #nameTagVisibility()
+                collisionRule = CollisionRule.ALWAYS; //see #collisionRule();
+                teamColor = NamedTextColor.WHITE;
+                teamPrefix = Either.secondary(Component.empty());
+                teamSuffix = Either.secondary(Component.empty());
+            }
+
+            if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
+                entities = ExProtocolUtils.readList(buf, () -> ProtocolUtils.readString(buf));
+            } else {
+                entities = ImmutableList.of();
+            }
+
+            return new UpdateTeamsPacket(teamName, mode,
+                    teamDisplayName, friendlyFlags, nameTagVisibility, collisionRule,
+                    teamColor, teamPrefix, teamSuffix, entities);
         }
 
-        if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
-            entities = ExProtocolUtils.readList(buffer, () -> ProtocolUtils.readString(buffer));
+        @Override
+        public void encode(UpdateTeamsPacket packet, ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            if (version.lessThan(MINECRAFT_1_20) && packet.teamName.length() > 16) {
+                throw new IllegalStateException("team name can only be 16 chars long");
+            }
+            ProtocolUtils.writeString(buf, packet.teamName);
+            buf.writeByte(packet.mode.ordinal()); // handled as byte in vanilla
+
+            if (packet.mode == Mode.CREATE_TEAM || packet.mode == Mode.UPDATE_TEAM_INFO) {
+                ExProtocolUtils.writeInternalComponent(buf, version, packet.teamDisplayName);
+                buf.writeByte(FriendlyFlag.getBit(packet.friendlyFlags));
+                packet.nameTagVisibility.write(buf, version);
+                packet.collisionRule.write(buf, version);
+                ProtocolUtils.writeVarInt(buf, NamedTextColorUtils.getIdByNamedTextColor(packet.teamColor));
+                ExProtocolUtils.writeInternalComponent(buf, version, packet.teamPrefix);
+                ExProtocolUtils.writeInternalComponent(buf, version, packet.teamSuffix);
+            }
+
+            if (packet.mode == Mode.CREATE_TEAM || packet.mode == Mode.ADD_ENTITIES || packet.mode == Mode.REMOVE_ENTITIES) {
+                if (version.lessThan(MINECRAFT_1_20) && packet.entities.size() > 40) {
+                    throw new IllegalStateException("entities array can only have 40 entries");
+                }
+                ExProtocolUtils.writeCollection(buf, packet.entities, entity -> ProtocolUtils.writeString(buf, entity));
+            }
         }
+
     }
 
     @Override
-    public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        if (protocolVersion.lessThan(MINECRAFT_1_20) && teamName.length() > 16) {
-            throw new IllegalStateException("team name can only be 16 chars long");
-        }
-        ProtocolUtils.writeString(buffer, teamName);
-        buffer.writeByte(mode.ordinal()); // handled as byte in vanilla
-
-        if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamDisplayName);
-            buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
-            nameTagVisibility.write(buffer, protocolVersion);
-            collisionRule.write(buffer, protocolVersion);
-            ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamPrefix);
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamSuffix);
-        }
-
-        if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
-            if (protocolVersion.lessThan(MINECRAFT_1_20) && entities.size() > 40) {
-                throw new IllegalStateException("entities array can only have 40 entries");
-            }
-            ExProtocolUtils.writeCollection(buffer, entities, entity -> ProtocolUtils.writeString(buffer, entity));
-        }
+    public boolean handle(MinecraftSessionHandler handler) {
+        return false;
     }
 
     public String teamName() {
         return teamName;
     }
 
-    public UpdateTeamsPacket teamName(String teamName) {
-        this.teamName = teamName;
-        return this;
-    }
-
     public Mode mode() {
         return mode;
-    }
-
-    public UpdateTeamsPacket mode(Mode mode) {
-        this.mode = mode;
-        return this;
     }
 
     public Component teamDisplayName() {
         return ComponentUtils.getComponent(teamDisplayName);
     }
 
-    public UpdateTeamsPacket teamDisplayName(Component teamDisplayName) {
-        this.teamDisplayName = Either.secondary(teamDisplayName);
-        return this;
-    }
-
-    @ApiStatus.Internal
-    public UpdateTeamsPacket teamDisplayName(ComponentHolder teamDisplayNameHolder) {
-        this.teamDisplayName = Either.primary(teamDisplayNameHolder);
-        return this;
-    }
-
-    public Set<FriendlyFlag> friendlyFlags() {
+    public ImmutableSet<FriendlyFlag> friendlyFlags() {
         return friendlyFlags;
     }
 
-    public UpdateTeamsPacket friendlyFlags(Set<FriendlyFlag> friendlyFlags) {
-        this.friendlyFlags = friendlyFlags;
-        return this;
-    }
-
+    /**
+     * @implNote Returns {@link NameTagVisibility#ALWAYS} for {@link Mode#REMOVE_TEAM}, {@link Mode#ADD_ENTITIES}, {@link Mode#REMOVE_ENTITIES}
+     */
     public NameTagVisibility nameTagVisibility() {
         return nameTagVisibility;
     }
 
-    public UpdateTeamsPacket nameTagVisibility(NameTagVisibility nameTagVisibility) {
-        this.nameTagVisibility = nameTagVisibility;
-        return this;
-    }
-
+    /**
+     * @implNote Returns {@link CollisionRule#ALWAYS} for {@link Mode#REMOVE_TEAM}, {@link Mode#ADD_ENTITIES}, {@link Mode#REMOVE_ENTITIES}
+     */
     public CollisionRule collisionRule() {
         return collisionRule;
-    }
-
-    public UpdateTeamsPacket collisionRule(CollisionRule collisionRule) {
-        this.collisionRule = collisionRule;
-        return this;
     }
 
     public NamedTextColor teamColor() {
         return teamColor;
     }
 
-    public UpdateTeamsPacket teamColor(NamedTextColor teamColor) {
-        this.teamColor = teamColor;
-        return this;
-    }
-
     public Component teamPrefix() {
         return ComponentUtils.getComponent(teamPrefix);
-    }
-
-    public UpdateTeamsPacket teamPrefix(Component teamPrefix) {
-        this.teamPrefix = Either.secondary(teamPrefix);
-        return this;
-    }
-
-    @ApiStatus.Internal
-    public UpdateTeamsPacket teamPrefix(ComponentHolder teamPrefixHolder) {
-        this.teamPrefix = Either.primary(teamPrefixHolder);
-        return this;
     }
 
     public Component teamSuffix() {
         return ComponentUtils.getComponent(teamSuffix);
     }
 
-    public UpdateTeamsPacket teamSuffix(Component teamSuffix) {
-        this.teamSuffix = Either.secondary(teamSuffix);
-        return this;
-    }
-
-    @ApiStatus.Internal
-    public UpdateTeamsPacket teamSuffix(ComponentHolder teamSuffixHolder) {
-        this.teamSuffix = Either.primary(teamSuffixHolder);
-        return this;
-    }
-
-    public List<String> entities() {
+    public ImmutableList<String> entities() {
         return entities;
-    }
-
-    public UpdateTeamsPacket entities(List<String> entities) {
-        this.entities = entities;
-        return this;
     }
 
     public enum Mode {
@@ -288,14 +375,14 @@ public class UpdateTeamsPacket extends AbstractPacket {
             return (mask & this.getMask()) == this.getMask();
         }
 
-        public static Set<FriendlyFlag> getFlags(int mask) {
-            Set<FriendlyFlag> flags = EnumSet.noneOf(FriendlyFlag.class);
+        public static ImmutableSet<FriendlyFlag> getFlags(int mask) {
+            ImmutableSet.Builder<FriendlyFlag> builder = ImmutableSet.builder();
             for (FriendlyFlag flag : FriendlyFlag.values()) {
                 if (flag.isSet(mask)) {
-                    flags.add(flag);
+                    builder.add(flag);
                 }
             }
-            return flags;
+            return builder.build();
         }
 
         public static int getBit(Set<FriendlyFlag> flags) {

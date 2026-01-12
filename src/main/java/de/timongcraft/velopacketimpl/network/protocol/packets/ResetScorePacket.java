@@ -1,82 +1,92 @@
 package de.timongcraft.velopacketimpl.network.protocol.packets;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.PacketCodec;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
-import de.timongcraft.velopacketimpl.network.protocol.packets.core.AbstractPacket;
 import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
-import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils;
+import de.timongcraft.velopacketimpl.utils.packet.PacketRangeFactory;
 import io.netty.buffer.ByteBuf;
-
 import javax.annotation.Nullable;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
+import static de.timongcraft.velopacketimpl.utils.packet.PacketRegistriesUtils.MultiVersionPacketProtocolState.PLAY;
 
 /**
- * (latest) Resource Id: 'minecraft:reset_score'
+ * (latest) Resource ID: 'minecraft:reset_score'
  */
 @SuppressWarnings("unused")
 @Since(MINECRAFT_1_20_3)
-public class ResetScorePacket extends AbstractPacket {
+public class ResetScorePacket implements MinecraftPacket {
+
+    /**
+     * For Minecraft &lt;1.20.3 and newer:
+     * @see UpdateScorePacket#ofLegacyRemove(String, String)
+     */
+    public static ResetScorePacket of(String entityName) {
+        return of(entityName, null);
+    }
+
+    /**
+     * For Minecraft &lt;1.20.3 and newer:
+     * @see UpdateScorePacket#ofLegacyRemove(String, String)
+     */
+    public static ResetScorePacket of(String entityName, @Nullable String objectiveName) {
+        return new ResetScorePacket(entityName, objectiveName);
+    }
 
     public static void register(boolean encodeOnly) {
-        PacketRegistration.of(ResetScorePacket.class)
-                .direction(ProtocolUtils.Direction.CLIENTBOUND)
-                .packetSupplier(ResetScorePacket::new)
-                .stateRegistry(StateRegistry.PLAY)
-                .mapping(0x42, MINECRAFT_1_20_3, encodeOnly)
-                .mapping(0x44, MINECRAFT_1_20_5, encodeOnly)
-                .mapping(0x49, MINECRAFT_1_21_2, encodeOnly)
-                .mapping(0x48, MINECRAFT_1_21_5, encodeOnly)
-                .mapping(0x4D, MINECRAFT_1_21_9, encodeOnly)
-                .register();
+        PacketRegistriesUtils.register(PLAY, ProtocolUtils.Direction.CLIENTBOUND,
+                ResetScorePacket.class, Codec.INSTANCE,
+                PacketRangeFactory.entry(0x42, MINECRAFT_1_20_3, encodeOnly),
+                PacketRangeFactory.entry(0x44, MINECRAFT_1_20_5, encodeOnly),
+                PacketRangeFactory.entry(0x49, MINECRAFT_1_21_2, encodeOnly),
+                PacketRangeFactory.entry(0x48, MINECRAFT_1_21_5, encodeOnly),
+                PacketRangeFactory.entry(0x4D, MINECRAFT_1_21_9, encodeOnly));
     }
 
-    private String entityName;
-    private @Nullable String objectiveName;
+    private final String entityName;
+    private final @Nullable String objectiveName;
 
-    public ResetScorePacket() {}
-
-    public ResetScorePacket(String entityName) {
-        this(entityName, null);
-    }
-
-    public ResetScorePacket(String entityName, @Nullable String objectiveName) {
+    private ResetScorePacket(String entityName, @Nullable String objectiveName) {
         this.entityName = entityName;
         this.objectiveName = objectiveName;
     }
 
-    @Override
-    public void decode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        super.decode(buffer, direction, protocolVersion);
+    public static class Codec implements PacketCodec<ResetScorePacket> {
 
-        entityName = ProtocolUtils.readString(buffer);
-        objectiveName = ExProtocolUtils.readOptString(buffer);
+        public static final Codec INSTANCE = new Codec();
+
+        @Override
+        public ResetScorePacket decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            String entityName = ProtocolUtils.readString(buf);
+            @Nullable String objectiveName = ExProtocolUtils.readOptString(buf);
+            return new ResetScorePacket(entityName, objectiveName);
+        }
+
+        @Override
+        public void encode(ResetScorePacket packet, ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+            ProtocolUtils.writeString(buf, packet.entityName);
+            ExProtocolUtils.writeOptString(buf, packet.objectiveName);
+        }
+
     }
 
     @Override
-    public void encode(ByteBuf buffer, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-        ProtocolUtils.writeString(buffer, entityName);
-        ExProtocolUtils.writeOptString(buffer, objectiveName);
+    public boolean handle(MinecraftSessionHandler handler) {
+        return false;
     }
 
     public String entityName() {
         return entityName;
     }
 
-    public ResetScorePacket entityName(String entityName) {
-        this.entityName = entityName;
-        return this;
-    }
-
-    public @Nullable String objectiveName() {
+    @Nullable
+    public String objectiveName() {
         return objectiveName;
-    }
-
-    public ResetScorePacket objectiveName(@Nullable String objectiveName) {
-        this.objectiveName = objectiveName;
-        return this;
     }
 
 }
