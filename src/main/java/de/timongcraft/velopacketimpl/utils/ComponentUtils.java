@@ -140,9 +140,9 @@ public class ComponentUtils {
         public boolean equals(Object o) {
             if (!(o instanceof NumberFormatFixed fixedFormat)) return false;
             return (content.isPrimary() && fixedFormat.content.isPrimary()
-                    && content.getPrimary().getComponent().equals(content.getPrimary().getComponent()))
+                    && content.getPrimary().getComponent().equals(fixedFormat.content.getPrimary().getComponent()))
                     || (content.isSecondary() && fixedFormat.content.isSecondary()
-                    && content.getSecondary().equals(content.getSecondary()));
+                    && content.getSecondary().equals(fixedFormat.content.getSecondary()));
         }
 
     }
