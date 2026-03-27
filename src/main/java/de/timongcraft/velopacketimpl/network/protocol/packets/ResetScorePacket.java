@@ -8,8 +8,7 @@ import de.timongcraft.velopacketimpl.utils.annotations.Since;
 import de.timongcraft.velopacketimpl.utils.network.protocol.ExProtocolUtils;
 import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
 
@@ -30,6 +29,7 @@ public class ResetScorePacket extends AbstractPacket {
                 .mapping(0x49, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x48, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x4D, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x4F, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

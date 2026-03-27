@@ -36,6 +36,7 @@ public class SynchronizePlayerPositionPacket extends AbstractPacket {
                 .mapping(0x42, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x41, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x46, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x48, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

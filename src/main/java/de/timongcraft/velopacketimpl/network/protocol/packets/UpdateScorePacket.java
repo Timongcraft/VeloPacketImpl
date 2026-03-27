@@ -14,8 +14,7 @@ import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
 
@@ -40,6 +39,7 @@ public class UpdateScorePacket extends AbstractPacket {
                 .mapping(0x68, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x67, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x6C, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x6E, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

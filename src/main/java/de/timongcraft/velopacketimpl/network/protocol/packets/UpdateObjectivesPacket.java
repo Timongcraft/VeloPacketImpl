@@ -13,8 +13,7 @@ import io.github._4drian3d.vpacketevents.api.register.PacketRegistration;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static com.velocitypowered.api.network.ProtocolVersion.*;
 
@@ -39,6 +38,7 @@ public class UpdateObjectivesPacket extends AbstractPacket {
                 .mapping(0x64, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x63, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x68, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x6A, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

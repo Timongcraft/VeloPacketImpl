@@ -38,6 +38,7 @@ public class SystemChatMessagePacket extends AbstractPacket {
                 .mapping(0x73, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x72, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x77, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x79, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

@@ -44,6 +44,7 @@ public class UpdateTeamsPacket extends AbstractPacket {
                 .mapping(0x67, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x66, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x6B, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x6D, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

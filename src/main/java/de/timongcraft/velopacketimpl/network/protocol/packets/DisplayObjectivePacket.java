@@ -30,6 +30,7 @@ public class DisplayObjectivePacket extends AbstractPacket {
                 .mapping(0x5C, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x5B, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x60, MINECRAFT_1_21_9, encodeOnly)
+                .mapping(0x62, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 

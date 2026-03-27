@@ -13,6 +13,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.*;
  * (latest) Resource Id: 'minecraft:set_time'
  */
 @SuppressWarnings("unused")
+@Deprecated
 public class TimeUpdatePacket extends AbstractPacket {
 
     public static void register(boolean encodeOnly) {
@@ -30,6 +31,7 @@ public class TimeUpdatePacket extends AbstractPacket {
                 .mapping(0x6B, MINECRAFT_1_21_2, encodeOnly)
                 .mapping(0x6A, MINECRAFT_1_21_5, encodeOnly)
                 .mapping(0x6F, MINECRAFT_1_21_9, encodeOnly)
+                //.mapping(0x71, MINECRAFT_26_1, encodeOnly)
                 .register();
     }
 
