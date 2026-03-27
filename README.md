@@ -1,8 +1,10 @@
 # VeloPacketImpl
 
-Packet implementations for Velocity (1.18.2-1.21.9)
+Packet implementations for Velocity (1.18.2-26.1)
 
 ## Getting started
+[![VeloPacketImpl](https://repo.skyblocksquad.de/api/badge/latest/repo/de/timongcraft/VeloPacketImpl?name=Version&filter=none:SNAPSHOT)](https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl)
+
 Note: You can find the current version [here](https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl).
 
 ### Maven
@@ -13,7 +15,7 @@ Note: You can find the current version [here](https://repo.skyblocksquad.de/#/re
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>3.6.1</version>
+            <version>3.6.2</version>
             <executions>
                 <execution>
                     <phase>package</phase>
@@ -57,7 +59,7 @@ When using Maven, make sure to build directly with Maven and not with your IDE c
 
 ```groovy
 plugins {
-    id 'com.gradleup.shadow' version '9.2.2'
+    id 'com.gradleup.shadow' version '9.4.1'
 }
 
 repositories {
