@@ -119,13 +119,23 @@ public class UpdateTeamsPacket extends AbstractPacket {
         mode = Mode.values()[buffer.readByte()]; // handled as byte in vanilla
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
-            friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
-            nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
-            collisionRule = CollisionRule.read(buffer, protocolVersion);
-            teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
-            teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
-            teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+            if (protocolVersion.noLessThan(MINECRAFT_26_2)) {
+                teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
+                collisionRule = CollisionRule.read(buffer, protocolVersion);
+                teamColor = ExProtocolUtils.readOpt(buffer, () -> NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer)));
+                friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
+            } else {
+                teamDisplayName = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                friendlyFlags = FriendlyFlag.getFlags(buffer.readUnsignedByte());
+                nameTagVisibility = NameTagVisibility.read(buffer, protocolVersion);
+                collisionRule = CollisionRule.read(buffer, protocolVersion);
+                teamColor = NamedTextColorUtils.getNamedTextColorById(ProtocolUtils.readVarInt(buffer));
+                teamPrefix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+                teamSuffix = Either.primary(ExProtocolUtils.readComponentHolder(buffer, protocolVersion));
+            }
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {
@@ -142,13 +152,24 @@ public class UpdateTeamsPacket extends AbstractPacket {
         buffer.writeByte(mode.ordinal()); // handled as byte in vanilla
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.UPDATE_TEAM_INFO) {
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamDisplayName);
-            buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
-            nameTagVisibility.write(buffer, protocolVersion);
-            collisionRule.write(buffer, protocolVersion);
-            ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamPrefix);
-            ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamSuffix);
+            if (protocolVersion.noLessThan(MINECRAFT_26_2)) {
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamDisplayName);
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamPrefix);
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamSuffix);
+                nameTagVisibility.write(buffer, protocolVersion);
+                collisionRule.write(buffer, protocolVersion);
+                ExProtocolUtils.writeOpt(buffer, teamColor, color ->
+                        ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(color)));
+                buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
+            } else {
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamDisplayName);
+                buffer.writeByte(FriendlyFlag.getBit(friendlyFlags));
+                nameTagVisibility.write(buffer, protocolVersion);
+                collisionRule.write(buffer, protocolVersion);
+                ProtocolUtils.writeVarInt(buffer, NamedTextColorUtils.getIdByNamedTextColor(teamColor));
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamPrefix);
+                ExProtocolUtils.writeInternalComponent(buffer, protocolVersion, teamSuffix);
+            }
         }
 
         if (mode == Mode.CREATE_TEAM || mode == Mode.ADD_ENTITIES || mode == Mode.REMOVE_ENTITIES) {

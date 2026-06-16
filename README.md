@@ -1,6 +1,6 @@
 # VeloPacketImpl
 
-Packet implementations for Velocity (1.18.2-26.1)
+Packet implementations for Velocity (1.18.2-26.2)
 
 ## Getting started
 [![VeloPacketImpl](https://repo.skyblocksquad.de/api/badge/latest/repo/de/timongcraft/VeloPacketImpl?name=Version&filter=none:SNAPSHOT)](https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl)
@@ -15,7 +15,7 @@ Note: You can find the current version [here](https://repo.skyblocksquad.de/#/re
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>3.6.2</version>
+            <version><version></version>
             <executions>
                 <execution>
                     <phase>package</phase>
@@ -40,7 +40,7 @@ Note: You can find the current version [here](https://repo.skyblocksquad.de/#/re
 <repositories>
     <repository>
         <id>skyblocksquad</id>
-        <url>https://repo.skyblocksquad.de/repo<repository></url>
+        <url>https://repo.skyblocksquad.de/repo</url>
     </repository>
 </repositories>
 
@@ -53,31 +53,27 @@ Note: You can find the current version [here](https://repo.skyblocksquad.de/#/re
 </dependencies>
 ```
 
-When using Maven, make sure to build directly with Maven and not with your IDE configuration (on IntelliJ IDEA: in the `Maven` tab on the right, in `Lifecycle`, use `package`).
+### Gradle KTS
 
-### Gradle
-
-```groovy
+  ```kotlin
 plugins {
-    id 'com.gradleup.shadow' version '9.4.1'
+    // version can be found here: https://plugins.gradle.org/plugin/com.gradleup.shadow
+    id("com.gradleup.shadow") version "<version>"
 }
 
 repositories {
     maven {
-        url "https://repo.skyblocksquad.de/repo"
+        url = uri("https://repo.skyblocksquad.de/repo")
     }
 }
 
 dependencies {
-    implementation 'de.timongcraft:VeloPacketImpl:CURRENT_VERSION'
+    // version can be found here: https://repo.skyblocksquad.de/#/repo/de/timongcraft/VeloPacketImpl
+    implementation("de.timongcraft:VeloPacketImpl:<version>")
 }
 
 shadowJar {
     // Replace 'com.yourpackage' with the package of your plugin 
-    relocate 'de.timongcraft.velopacketimpl', 'com.yourpackage.velopacketimpl'
+    relocate("de.timongcraft.velopacketimpl", "com.yourpackage.shadow.velopacketimpl")
 }
-```
-
-### Manual
-
-Copy all files in your plugin.
+  ```
